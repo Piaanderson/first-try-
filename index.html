@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Million Pixel Canvas</title>
+  <style>
+    /* ── RESET ── */
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Courier New',monospace;background:#0a0a0f;color:#e8e8e0;min-height:100vh;}
+
+    /* ── HEADER ── */
+    header{padding:1rem 2rem;border-bottom:1px solid #1e1e2a;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+    .site-title{font-size:20px;font-weight:700;letter-spacing:-0.5px;color:#f0f0e8;}
+    .site-title span{color:#bf7fff;}
+    .dev-badge{font-size:10px;background:#1e1a2e;color:#bf7fff;border:1px solid #3a2a5a;border-radius:4px;padding:2px 8px;letter-spacing:.1em;text-transform:uppercase;}
+    .stats-row{display:flex;gap:1.25rem;font-size:12px;color:#888;letter-spacing:.05em;text-transform:uppercase;}
+    .stats-row b{color:#d9aaff;font-weight:600;}
+    .header-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+
+    /* ── MULTI-SELECT BUTTON ── */
+    .multi-btn{height:34px;padding:0 12px;background:#111118;border:1px solid #2a2a3a;border-radius:6px;color:#888;font-family:'Courier New',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s;white-space:nowrap;}
+    .multi-btn:hover{border-color:#bf7fff;color:#bf7fff;background:#1a1228;}
+    .multi-btn.active{background:#bf7fff;color:#0a0a0f;border-color:#bf7fff;}
+    .multi-btn.active:hover{background:#d09fff;}
+    .multi-btn svg{width:14px;height:14px;flex-shrink:0;}
+
+    /* ── SEARCH BUTTON ── */
+    .search-btn{width:34px;height:34px;background:#1a1228;border:1px solid #3a2a5a;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;flex-shrink:0;}
+    .search-btn:hover{border-color:#bf7fff;background:#221638;}
+    .search-btn svg{width:16px;height:16px;stroke:#bf7fff;}
+
+    /* ── LAYOUT ── */
+    .main-layout{display:flex;align-items:flex-start;}
+    .canvas-area{flex:1;padding:1.5rem 1rem 1.5rem 1.5rem;min-width:0;}
+
+    /* ── MULTI-SELECT BAR ── */
+    .multiselect-bar{background:#1a1228;border:1px solid #3a2a5a;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#bf7fff;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .multiselect-bar.hidden{display:none;}
+    .ms-count{font-weight:700;}
+    .ms-hint{color:#666;font-size:10px;}
+    .ms-actions{margin-left:auto;display:flex;gap:6px;}
+    .ms-clear{padding:4px 10px;background:transparent;border:1px solid #3a2a5a;border-radius:4px;color:#888;font-family:'Courier New',monospace;font-size:10px;cursor:pointer;transition:all .12s;}
+    .ms-clear:hover{border-color:#ff6644;color:#ff6644;}
+    .ms-purchase{padding:4px 12px;background:#bf7fff;border:none;border-radius:4px;color:#0a0a0f;font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:background .12s;}
+    .ms-purchase:hover{background:#d09fff;}
+    .ms-purchase:disabled{background:#2a1a4a;color:#554;cursor:not-allowed;}
+
+    /* ── CANVAS ── */
+    .canvas-wrap{position:relative;border:1px solid #1e1e2a;border-radius:4px;overflow:hidden;cursor:crosshair;background:#f0ede8;aspect-ratio:1;}
+    .canvas-wrap.multiselect-mode{cursor:cell;}
+    #pixelCanvas{display:block;image-rendering:pixelated;width:100%;height:100%;}
+    #gridCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;image-rendering:pixelated;}
+    .hover-label{position:absolute;bottom:8px;left:8px;background:rgba(10,10,15,.82);color:#bf7fff;font-size:11px;padding:3px 8px;border-radius:3px;pointer-events:none;display:none;}
+    .zoom-hint{font-size:11px;color:#555;margin-top:6px;text-align:right;letter-spacing:.03em;}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:240px;flex-shrink:0;padding:1.5rem 1.5rem 1.5rem 0;display:flex;flex-direction:column;gap:1.25rem;}
+    .panel{background:#111118;border:1px solid #1e1e2a;border-radius:6px;padding:1rem;}
+    .panel-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#555;margin-bottom:10px;}
+
+    /* ── COLOR PICKER ── */
+    #colorInput{width:100%;height:44px;border:1px solid #2a2a3a;border-radius:4px;cursor:pointer;background:none;padding:2px;}
+    .hex-row input[type=text]{width:100%;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:4px;color:#d9aaff;font-family:'Courier New',monospace;font-size:13px;padding:6px 8px;outline:none;}
+    .hex-row input:focus{border-color:#bf7fff;}
+    .swatch-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:6px;}
+    .swatch{width:100%;aspect-ratio:1;border-radius:3px;cursor:pointer;border:2px solid transparent;transition:transform .1s;}
+    .swatch:hover{transform:scale(1.15);border-color:#fff3;}
+    .swatch.active{border-color:#bf7fff;}
+
+    /* ── PIXEL INFO ── */
+    .pixel-info{font-size:12px;color:#888;line-height:1.8;}
+    .pixel-info .coord{color:#bf7fff;}
+    .pixel-info b{color:#e8e8e0;}
+    .pixel-info .golden-tag{color:#f5c842;font-weight:700;}
+    .pixel-info .stolen-tag{color:#ff7755;}
+    .claim-entry{margin-top:8px;border-top:1px solid #1e1e2a;padding-top:8px;}
+    .claim-nick{color:#bf7fff;font-weight:700;font-size:12px;}
+    .claim-date{color:#555;font-size:10px;margin-left:6px;}
+    .claim-msg{color:#aaa;font-size:11px;line-height:1.5;margin-top:3px;word-break:break-word;}
+    .history-btn{width:100%;margin-top:8px;padding:5px 8px;background:transparent;border:1px solid #2a2a3a;border-radius:4px;color:#888;font-family:'Courier New',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s;}
+    .history-btn:hover{border-color:#bf7fff;color:#bf7fff;}
+
+    /* ── ACTION BUTTONS ── */
+    .action-btns{display:flex;flex-direction:column;gap:6px;}
+    .action-btn{width:100%;padding:9px 10px;border:none;border-radius:5px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:.04em;cursor:pointer;text-transform:uppercase;transition:background .15s,transform .1s,opacity .15s;display:flex;align-items:center;justify-content:space-between;}
+    .action-btn:active{transform:scale(.97);}
+    .action-btn:disabled{opacity:.25;cursor:not-allowed;transform:none;}
+    .btn-claim{background:#bf7fff;color:#0a0a0f;}
+    .btn-claim:not(:disabled):hover{background:#d09fff;}
+    .btn-steal{background:#ff6644;color:#0a0a0f;}
+    .btn-steal:not(:disabled):hover{background:#ff8866;}
+    .btn-golden{background:#f5c842;color:#0a0a0f;}
+    .btn-golden:not(:disabled):hover{background:#f7d468;}
+    .btn-price{font-size:11px;opacity:.75;font-weight:400;}
+
+    /* ── RECENT ── */
+    .recent-list{display:flex;flex-direction:column;gap:6px;max-height:130px;overflow-y:auto;}
+    .recent-item{display:flex;align-items:center;gap:8px;font-size:11px;color:#666;}
+    .recent-swatch{width:14px;height:14px;border-radius:2px;flex-shrink:0;border:1px solid transparent;}
+    .recent-swatch.golden{border-color:#f5c842;}
+    .recent-coord{color:#bf7fff;}
+    .recent-type.claim{color:#bf7fff;}
+    .recent-type.steal{color:#ff6644;}
+    .recent-type.golden{color:#f5c842;}
+
+    /* ── LEGEND ── */
+    .legend{display:flex;flex-direction:column;gap:5px;}
+    .legend-item{display:flex;align-items:center;gap:7px;font-size:11px;color:#666;}
+    .legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+    /* ── ZOOM ── */
+    .zoom-controls{display:flex;gap:4px;}
+    .zoom-btn{flex:1;padding:6px 0;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:4px;color:#aaa;font-size:14px;cursor:pointer;font-family:'Courier New',monospace;transition:border-color .1s,color .1s;}
+    .zoom-btn:hover{border-color:#bf7fff;color:#bf7fff;}
+    .zoom-level{font-size:11px;color:#555;text-align:center;margin-top:6px;letter-spacing:.03em;}
+
+    /* ── MODALS ── */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;padding:1rem;}
+    .modal-backdrop.hidden{display:none;}
+    .modal{background:#111118;border:1px solid #2a2a3a;border-radius:8px;padding:1.25rem;width:100%;max-width:380px;max-height:85vh;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+    .modal-title{font-size:13px;font-weight:700;color:#e8e8e0;letter-spacing:.05em;text-transform:uppercase;}
+    .modal-sub{font-size:11px;color:#555;}
+    .modal-field{display:flex;flex-direction:column;gap:4px;}
+    .modal-field label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#555;}
+    .modal-field input[type=text],.modal-field textarea{background:#0a0a0f;border:1px solid #2a2a3a;border-radius:4px;color:#e8e8e0;font-family:'Courier New',monospace;font-size:12px;padding:7px 9px;outline:none;resize:none;}
+    .modal-field input:focus,.modal-field textarea:focus{border-color:#bf7fff;}
+    .modal-field textarea{min-height:80px;}
+    .char-count{font-size:10px;color:#555;text-align:right;}
+    .char-count.warn{color:#ff7755;}
+    .modal-actions{display:flex;gap:8px;margin-top:4px;}
+    .modal-confirm{flex:1;padding:9px;background:#bf7fff;color:#0a0a0f;border:none;border-radius:5px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:background .15s;}
+    .modal-confirm:hover{background:#d09fff;}
+    .modal-confirm.steal-confirm{background:#ff6644;}
+    .modal-confirm.steal-confirm:hover{background:#ff8866;}
+    .modal-confirm.golden-confirm{background:#f5c842;}
+    .modal-confirm.golden-confirm:hover{background:#f7d468;}
+    .modal-cancel{padding:9px 14px;background:transparent;border:1px solid #2a2a3a;border-radius:5px;color:#888;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;}
+    .modal-cancel:hover{border-color:#888;}
+    .filter-error{font-size:11px;color:#ff6644;background:#2a0f0a;border:1px solid rgba(255,102,68,.2);border-radius:4px;padding:6px 9px;display:none;line-height:1.5;}
+    .filter-error.visible{display:block;}
+    .ms-pixel-preview{display:flex;gap:3px;flex-wrap:wrap;max-height:48px;overflow:hidden;margin-top:4px;}
+    .ms-pixel-dot{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
+
+    /* ── HISTORY MODAL ── */
+    .history-list{overflow-y:auto;max-height:320px;display:flex;flex-direction:column;gap:10px;}
+    .history-entry{border:1px solid #1e1e2a;border-radius:5px;padding:8px 10px;}
+    .history-entry.current{border-color:#3a2a5a;background:#0f0d18;}
+    .history-entry-header{display:flex;align-items:baseline;gap:6px;margin-bottom:4px;}
+    .history-nick{color:#bf7fff;font-size:12px;font-weight:700;}
+    .history-nick.stolen{color:#ff6644;}
+    .history-nick.golden{color:#f5c842;}
+    .history-date{color:#555;font-size:10px;}
+    .history-current-tag{font-size:9px;background:#2a1a4a;color:#bf7fff;border-radius:3px;padding:1px 5px;letter-spacing:.08em;text-transform:uppercase;}
+    .history-msg{font-size:11px;color:#888;line-height:1.5;word-break:break-word;}
+    .history-swatch{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:4px;}
+
+    /* ── SEARCH MODAL ── */
+    .search-modal-header{display:flex;align-items:center;justify-content:space-between;}
+    .search-close-btn{width:28px;height:28px;background:transparent;border:1px solid #2a2a3a;border-radius:4px;color:#666;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s;font-family:monospace;}
+    .search-close-btn:hover{border-color:#888;color:#e8e8e0;}
+    .search-tabs{display:flex;gap:4px;}
+    .search-tab{flex:1;padding:6px 0;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:4px;color:#666;font-family:'Courier New',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .15s;text-align:center;}
+    .search-tab.active{border-color:#bf7fff;color:#bf7fff;background:#1a1228;}
+    .search-input-row{display:flex;gap:6px;}
+    .search-input-row input{flex:1;background:#0a0a0f;border:1px solid #2a2a3a;border-radius:4px;color:#e8e8e0;font-family:'Courier New',monospace;font-size:12px;padding:7px 9px;outline:none;min-width:0;}
+    .search-input-row input:focus{border-color:#bf7fff;}
+    .search-input-row input::placeholder{color:#444;}
+    .search-go{padding:7px 14px;background:#bf7fff;color:#0a0a0f;border:none;border-radius:4px;font-family:'Courier New',monospace;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap;}
+    .search-go:hover{background:#d09fff;}
+    .search-hint{font-size:10px;color:#444;margin-top:5px;line-height:1.5;}
+    .search-results{display:flex;flex-direction:column;gap:5px;max-height:260px;overflow-y:auto;}
+    .search-result-item{display:flex;align-items:center;gap:8px;padding:7px 9px;background:#0a0a0f;border:1px solid #1e1e2a;border-radius:4px;cursor:pointer;transition:border-color .15s;}
+    .search-result-item:hover{border-color:#bf7fff;}
+    .search-result-item.golden-result{border-color:#3a3010;}
+    .search-result-item.golden-result:hover{border-color:#f5c842;}
+    .sr-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
+    .sr-body{flex:1;min-width:0;}
+    .sr-coord{color:#bf7fff;font-size:11px;}
+    .sr-nick{color:#e8e8e0;font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .sr-date{color:#555;font-size:10px;}
+    .sr-type{font-size:9px;padding:1px 5px;border-radius:3px;flex-shrink:0;}
+    .sr-type.golden{background:#2a2000;color:#f5c842;}
+    .sr-type.claim{background:#1a1228;color:#bf7fff;}
+    .sr-type.steal{background:#2a1008;color:#ff6644;}
+    .sr-goto{font-size:12px;color:#555;flex-shrink:0;}
+    .search-result-item:hover .sr-goto{color:#bf7fff;}
+    .search-empty{font-size:11px;color:#444;text-align:center;padding:16px 0;}
+    .search-count{font-size:10px;color:#555;}
+    .search-divider{border:none;border-top:1px solid #1e1e2a;margin:0;}
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="site-title">THE <span>MILLION</span> PIXEL CANVAS</div>
+  <div class="dev-badge">dev mode</div>
+  <div class="stats-row">
+    <span>Pixels placed: <b id="soldCount">0</b></span>
+    <span>Remaining: <b id="remainCount">1,000,000</b></span>
+  </div>
+  <div class="header-right">
+    <button class="multi-btn" id="multiToggleBtn" title="Select multiple pixels">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="1" width="5" height="5" rx="1"/>
+        <rect x="1" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/>
+      </svg>
+      Multi-select
+    </button>
+    <button class="search-btn" id="openSearchBtn" title="Search pixels">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+  <div class="canvas-area">
+    <div class="multiselect-bar hidden" id="msBar">
+      <span class="ms-count" id="msCount">0 pixels selected</span>
+      <span class="ms-hint">Click pixels to select &middot; click again to deselect &middot; change color anytime</span>
+      <div class="ms-actions">
+        <button class="ms-clear" id="msClearBtn">Clear all</button>
+        <button class="ms-purchase" id="msPurchaseBtn" disabled>Purchase selection</button>
+      </div>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="pixelCanvas"></canvas>
+      <canvas id="gridCanvas"></canvas>
+      <div class="hover-label" id="hoverLabel"></div>
+    </div>
+    <div class="zoom-hint">scroll to zoom &middot; shift+drag to pan</div>
+  </div>
+
+  <div class="sidebar">
+    <div class="panel">
+      <div class="panel-label">Choose color</div>
+      <input type="color" id="colorInput" value="#bf7fff">
+      <div class="hex-row" style="margin-top:8px"><input type="text" id="hexInput" value="#bf7fff" maxlength="7"></div>
+      <div class="swatch-grid" id="swatchGrid"></div>
+    </div>
+    <div class="panel" id="singlePixelPanel">
+      <div class="panel-label">Selected pixel</div>
+      <div class="pixel-info" id="pixelInfo"><span style="color:#444">Click a pixel to select it</span></div>
+    </div>
+    <div class="panel" id="actionPanel">
+      <div class="panel-label">Actions</div>
+      <div class="action-btns">
+        <button class="action-btn btn-claim" id="btnClaim" disabled><span>Claim pixel</span><span class="btn-price">$1.00</span></button>
+        <button class="action-btn btn-steal" id="btnSteal" disabled><span>Steal pixel</span><span class="btn-price">$5.00</span></button>
+        <button class="action-btn btn-golden" id="btnGolden" disabled><span>&#10022; Golden pixel</span><span class="btn-price">$10.00</span></button>
+      </div>
+      <div style="font-size:10px;color:#444;margin-top:10px;line-height:1.6;">Golden pixels cannot be stolen.<br>Must be claimed fresh &mdash; not stolen.</div>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Legend</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#f0ede8;border:1px solid #ccc"></div>Unclaimed</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#bf7fff"></div>Claimed pixel</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f5c842;border:1px solid #d4a800"></div>Golden pixel</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Recent activity</div>
+      <div class="recent-list" id="recentList"><div style="font-size:11px;color:#444">No activity yet</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Zoom</div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomOut">&#8722;</button>
+        <button class="zoom-btn" id="zoomReset">&#8962;</button>
+        <button class="zoom-btn" id="zoomIn">+</button>
+      </div>
+      <div class="zoom-level" id="zoomLevel">1&times; &mdash; 1000&times;1000 px</div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTION MODAL -->
+<div class="modal-backdrop hidden" id="actionModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-sub" id="modalSub"></div>
+    <div id="msPreviewWrap" style="display:none">
+      <div class="panel-label" style="margin-bottom:6px">Selected pixels</div>
+      <div class="ms-pixel-preview" id="msPreview"></div>
+    </div>
+    <div class="modal-field"><label>Nickname</label><input type="text" id="modalNick" placeholder="Your name or alias" maxlength="40"></div>
+    <div class="modal-field"><label>Message</label><textarea id="modalMsg" placeholder="Leave a short message..." maxlength="500"></textarea><div class="char-count" id="charCount">0 / 500</div></div>
+    <div class="filter-error" id="filterError">That text is not allowed. Please keep it respectful!</div>
+    <div class="modal-actions"><button class="modal-cancel" id="modalCancel">Cancel</button><button class="modal-confirm" id="modalConfirm">Confirm</button></div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="modal-backdrop hidden" id="historyModal">
+  <div class="modal">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;">
+      <div class="modal-title">Pixel history</div>
+      <div class="modal-sub" id="historyCoord"></div>
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <div class="modal-actions"><button class="modal-cancel" id="historyClose" style="flex:1">Close</button></div>
+  </div>
+</div>
+
+<!-- SEARCH MODAL -->
+<div class="modal-backdrop hidden" id="searchModal">
+  <div class="modal">
+    <div class="search-modal-header">
+      <div class="modal-title">Search pixels</div>
+      <button class="search-close-btn" id="searchCloseBtn">&#10005;</button>
+    </div>
+    <div class="search-tabs">
+      <button class="search-tab active" data-tab="coord">Coords</button>
+      <button class="search-tab" data-tab="nick">Nickname</button>
+      <button class="search-tab" data-tab="date">Date</button>
+    </div>
+    <div id="searchCoordPane">
+      <div class="search-input-row">
+        <input type="text" id="searchCoordX" placeholder="X (0-999)" style="width:90px;flex:none">
+        <input type="text" id="searchCoordY" placeholder="Y (0-999)" style="width:90px;flex:none">
+        <button class="search-go" id="searchCoordBtn">Go</button>
+      </div>
+      <div class="search-hint">Jump directly to a coordinate</div>
+    </div>
+    <div id="searchNickPane" style="display:none">
+      <div class="search-input-row"><input type="text" id="searchNickInput" placeholder="Search by nickname..."><button class="search-go" id="searchNickBtn">Go</button></div>
+      <div class="search-hint">Partial matches included</div>
+    </div>
+    <div id="searchDatePane" style="display:none">
+      <div class="search-input-row"><input type="date" id="searchDateInput" style="flex:1;color-scheme:dark"><button class="search-go" id="searchDateBtn">Go</button></div>
+      <div class="search-hint">Find all pixels placed on this date</div>
+    </div>
+    <div id="searchResultsWrap" style="display:none">
+      <hr class="search-divider">
+      <div class="search-count" id="searchCount"></div>
+      <div class="search-results" id="searchResultsList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── CONTENT FILTER ──────────────────────────────────── */
+function normalise(s){return s.toLowerCase().replace(/[​-‍﻿­]/g,'').replace(/[@4]/g,'a').replace(/[38]/g,'b').replace(/[<(]/g,'c').replace(/3/g,'e').replace(/[!1|]/g,'i').replace(/0/g,'o').replace(/[$5]/g,'s').replace(/[7+]/g,'t').replace(/[v\/\\]/g,'v').replace(/[xX%]/g,'x').replace(/2/g,'z').replace(/(.)\1{1,}/g,'$1').replace(/[^a-z]/g,'');}
+const BLOCKED=[/nig+/,/n[ie]g+[ae]r/,/negro+/,/niglet/,/nigg/,/fag+/,/faggot/,/trap+[^eze]/,/trann/,/trannie/,/\bret[ao]r/,/retard/,/\bcunt/,/\bkike/,/\bgyp/,/\bsquaw/,/\bspic/,/\bspik/,/\bchink/,/\bwop\b/,/\bcripple/,/\bwhitey\b/,/\bcracker\b/,/\bhonkey\b/,/\bhonkie\b/,/\bdie\s*(you|u|all)/,/\bkillall/,/heil\s*hitler/,/\bwhitepower/,/\bblackpower/,/\bheteropower/];
+function isClean(t){const n=normalise(t);return!BLOCKED.some(r=>r.test(n));}
+
+/* ── CANVAS STATE ────────────────────────────────────── */
+const COLS=1000,ROWS=1000,GRID_THRESHOLD=8;
+// pixelState: 0=unclaimed, 1=claimed, 2=golden
+const pixelState=new Uint8Array(COLS*ROWS);
+const pixelColor=new Uint32Array(COLS*ROWS);
+const pixelHistory={};        // idx -> [{nick,msg,color,date,isoDate,type}]
+const multiSelection=new Map(); // idx -> hex color
+let multiMode=false;
+
+/* ── DOM REFS ────────────────────────────────────────── */
+const canvas=document.getElementById('pixelCanvas');
+const ctx=canvas.getContext('2d');
+canvas.width=COLS;canvas.height=ROWS;
+const gridCanvas=document.getElementById('gridCanvas');
+const gctx=gridCanvas.getContext('2d');
+const wrap=document.getElementById('canvasWrap');
+const hoverLabel=document.getElementById('hoverLabel');
+const colorInput=document.getElementById('colorInput');
+const hexInput=document.getElementById('hexInput');
+const pixelInfoEl=document.getElementById('pixelInfo');
+const btnClaim=document.getElementById('btnClaim');
+const btnSteal=document.getElementById('btnSteal');
+const btnGolden=document.getElementById('btnGolden');
+const recentList=document.getElementById('recentList');
+const soldCountEl=document.getElementById('soldCount');
+const remainCountEl=document.getElementById('remainCount');
+const zoomLevelEl=document.getElementById('zoomLevel');
+const actionModal=document.getElementById('actionModal');
+const modalTitle=document.getElementById('modalTitle');
+const modalSub=document.getElementById('modalSub');
+const modalNick=document.getElementById('modalNick');
+const modalMsg=document.getElementById('modalMsg');
+const charCount=document.getElementById('charCount');
+const modalConfirm=document.getElementById('modalConfirm');
+const modalCancel=document.getElementById('modalCancel');
+const filterError=document.getElementById('filterError');
+const historyModal=document.getElementById('historyModal');
+const historyList=document.getElementById('historyList');
+const historyCoord=document.getElementById('historyCoord');
+const historyClose=document.getElementById('historyClose');
+const searchModal=document.getElementById('searchModal');
+const msBar=document.getElementById('msBar');
+const msCountEl=document.getElementById('msCount');
+const msPurchaseBtn=document.getElementById('msPurchaseBtn');
+const msClearBtn=document.getElementById('msClearBtn');
+const multiToggleBtn=document.getElementById('multiToggleBtn');
+const imageData=ctx.createImageData(COLS,ROWS);
+const buf32=new Uint32Array(imageData.data.buffer);
+
+let viewX=0,viewY=0,zoom=1;
+let selectedPixel=null,pendingAction=null,pendingMulti=false;
+let chosenColor='#bf7fff',placedCount=0;
+let isDragging=false,dragStartX,dragStartY,dragStartViewX,dragStartViewY;
+
+const PALETTE=['#ff3333','#ff7700','#ffdd00','#33cc55','#2277ff','#9922ff','#ff55aa','#ffffff','#cccccc','#888888','#333333','#000000','#ffaaaa','#ffddaa','#aaffcc','#aaccff','#ddaaff','#ffaadd'];
+
+/* ── HELPERS ─────────────────────────────────────────── */
+function hexToRgba(hex){return(255<<24)|(parseInt(hex.slice(5,7),16)<<16)|(parseInt(hex.slice(3,5),16)<<8)|parseInt(hex.slice(1,3),16);}
+function rgba32ToHex(v){return'#'+[v&0xff,(v>>8)&0xff,(v>>16)&0xff].map(x=>x.toString(16).padStart(2,'0')).join('');}
+function fmtDate(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function isoDate(d){return d.toISOString().slice(0,10);}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ── INIT CANVAS ─────────────────────────────────────── */
+buf32.fill(hexToRgba('#f0ede8'));
+ctx.putImageData(imageData,0,0);
+
+/* ── VIEWPORT ────────────────────────────────────────── */
+function getWrapSize(){const r=wrap.getBoundingClientRect();return{w:r.width,h:r.height};}
+function canvasToPixel(cx,cy){const{w}=getWrapSize(),cs=w/COLS*zoom;return{px:Math.floor(cx/cs+viewX),py:Math.floor(cy/cs+viewY)};}
+function clampView(){viewX=Math.min(Math.max(0,COLS-COLS/zoom),Math.max(0,viewX));viewY=Math.min(Math.max(0,ROWS-ROWS/zoom),Math.max(0,viewY));}
+function updateTransform(){canvas.style.transform=`scale(${zoom}) translate(${-viewX/COLS*100}%,${-viewY/ROWS*100}%)`;canvas.style.transformOrigin='0 0';}
+
+/* ── GRID + OVERLAYS ─────────────────────────────────── */
+function drawGrid(){
+  const{w,h}=getWrapSize();
+  gridCanvas.width=Math.round(w);gridCanvas.height=Math.round(h);
+  gctx.clearRect(0,0,gridCanvas.width,gridCanvas.height);
+  // Grid lines
+  if(zoom>=GRID_THRESHOLD){const cs=w/COLS*zoom,op=Math.min(1,(zoom-GRID_THRESHOLD)/8)*0.3;gctx.strokeStyle=`rgba(120,60,180,${op})`;gctx.lineWidth=0.5;const sx=Math.floor(viewX),sy=Math.floor(viewY),vc=Math.ceil(COLS/zoom)+1,vr=Math.ceil(ROWS/zoom)+1;gctx.beginPath();for(let x=sx;x<=sx+vc&&x<=COLS;x++){const s=(x-viewX)*cs;gctx.moveTo(s,0);gctx.lineTo(s,h);}for(let y=sy;y<=sy+vr&&y<=ROWS;y++){const s=(y-viewY)*cs;gctx.moveTo(0,s);gctx.lineTo(w,s);}gctx.stroke();}
+  // Multi-select outlines
+  if(multiMode&&multiSelection.size>0){const cs=w/COLS*zoom,sx=Math.floor(viewX),sy=Math.floor(viewY),vc=Math.ceil(COLS/zoom)+2,vr=Math.ceil(ROWS/zoom)+2;for(let gy=sy;gy<sy+vr&&gy<ROWS;gy++)for(let gx=sx;gx<sx+vc&&gx<COLS;gx++){const idx=gy*COLS+gx;if(multiSelection.has(idx)){const lw=Math.max(1.5,cs*0.12);gctx.strokeStyle=multiSelection.get(idx);gctx.lineWidth=lw;gctx.strokeRect((gx-viewX)*cs+lw/2,(gy-viewY)*cs+lw/2,cs-lw,cs-lw);}}}
+  // Single selection
+  if(!multiMode&&selectedPixel){const{w:sw}=getWrapSize(),cs=sw/COLS*zoom,{px,py}=selectedPixel,isGolden=pixelState[py*COLS+px]===2,lw=Math.max(1.5,cs*0.08);gctx.strokeStyle=isGolden?'#f5c842':'#ffffff';gctx.lineWidth=lw;gctx.strokeRect((px-viewX)*cs+lw/2,(py-viewY)*cs+lw/2,cs-lw,cs-lw);}
+}
+
+function render(){
+  updateTransform();drawGrid();
+  const vis=Math.round(COLS/zoom);
+  zoomLevelEl.textContent=`${zoom%1===0?zoom:zoom.toFixed(1)}x — ${vis}x${vis} px visible`;
+}
+
+/* ── MULTI-SELECT ────────────────────────────────────── */
+function setMultiMode(on){multiMode=on;multiToggleBtn.classList.toggle('active',on);wrap.classList.toggle('multiselect-mode',on);msBar.classList.toggle('hidden',!on);document.getElementById('singlePixelPanel').style.opacity=on?'0.4':'1';document.getElementById('actionPanel').style.opacity=on?'0.4':'1';if(!on){multiSelection.clear();updateMsBar();}render();}
+function updateMsBar(){const n=multiSelection.size;msCountEl.textContent=`${n} pixel${n!==1?'s':''} selected`;msPurchaseBtn.disabled=n===0;msPurchaseBtn.textContent=n>0?`Purchase ${n} pixel${n!==1?'s':''} ($${n}.00)`:'Purchase selection';}
+multiToggleBtn.addEventListener('click',()=>setMultiMode(!multiMode));
+msClearBtn.addEventListener('click',()=>{multiSelection.clear();updateMsBar();render();});
+msPurchaseBtn.addEventListener('click',()=>{if(!multiSelection.size)return;pendingMulti=true;const n=multiSelection.size;modalTitle.textContent=`Claim ${n} pixel${n!==1?'s':''}`;modalSub.textContent=`${n} pixel${n!==1?'s':''} — $${n}.00 total`;document.getElementById('msPreviewWrap').style.display='block';const preview=document.getElementById('msPreview');preview.innerHTML='';let shown=0;for(const[,color]of multiSelection){if(shown>=30){const more=document.createElement('span');more.style.cssText='font-size:10px;color:#555;align-self:center';more.textContent=`+${multiSelection.size-30} more`;preview.appendChild(more);break;}const dot=document.createElement('div');dot.className='ms-pixel-dot';dot.style.background=color;preview.appendChild(dot);shown++;}modalNick.value='';modalMsg.value='';charCount.textContent='0 / 500';charCount.classList.remove('warn');filterError.classList.remove('visible');modalNick.style.borderColor='';modalMsg.style.borderColor='';modalConfirm.className='modal-confirm';actionModal.classList.remove('hidden');setTimeout(()=>modalNick.focus(),50);});
+
+function onColorChange(c){chosenColor=c;if(multiMode&&multiSelection.size>0){for(const idx of multiSelection.keys())multiSelection.set(idx,c);updateMsBar();render();}}
+
+/* ── COLOR PICKER ────────────────────────────────────── */
+colorInput.addEventListener('input',e=>{onColorChange(e.target.value);hexInput.value=chosenColor;updateSwatches();});
+hexInput.addEventListener('change',e=>{const v=e.target.value.startsWith('#')?e.target.value:'#'+e.target.value;if(/^#[0-9a-fA-F]{6}$/.test(v)){onColorChange(v);colorInput.value=v;updateSwatches();}});
+const swatchGrid=document.getElementById('swatchGrid');
+PALETTE.forEach(c=>{const s=document.createElement('div');s.className='swatch';s.style.background=c;s.title=c;s.addEventListener('click',()=>{onColorChange(c);colorInput.value=c;hexInput.value=c;updateSwatches();});swatchGrid.appendChild(s);});
+function updateSwatches(){swatchGrid.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('active',s.title.toLowerCase()===chosenColor.toLowerCase()));}
+
+/* ── SINGLE PIXEL SELECTION ──────────────────────────── */
+function updateButtons(){if(!selectedPixel||multiMode){btnClaim.disabled=btnSteal.disabled=btnGolden.disabled=true;return;}const s=pixelState[selectedPixel.py*COLS+selectedPixel.px];btnClaim.disabled=s!==0;btnSteal.disabled=s!==1;btnGolden.disabled=s!==0;}
+
+function updatePixelInfo(){
+  if(!selectedPixel||multiMode){pixelInfoEl.innerHTML='<span style="color:#444">Click a pixel to select it</span>';return;}
+  const{px,py}=selectedPixel,idx=py*COLS+px,state=pixelState[idx];
+  const statusHTML=state===0?'<b>Unclaimed</b>':state===1?'<b>Claimed</b> <span class="stolen-tag">(stealable)</span>':'<b class="golden-tag">Golden (protected)</b>';
+  let html=`<div><span class="coord">(${px}, ${py})</span></div><div>Status: ${statusHTML}</div>`;
+  if(state>0&&pixelHistory[idx]?.length>0){const cur=pixelHistory[idx][pixelHistory[idx].length-1];html+=`<div class="claim-entry"><span class="claim-nick">${escHtml(cur.nick)}</span><span class="claim-date">${cur.date}</span><div class="claim-msg">${escHtml(cur.msg)}</div></div>`;if(pixelHistory[idx].length>1&&state!==2)html+=`<button class="history-btn" id="historyTrigger">See pixel history</button>`;}
+  pixelInfoEl.innerHTML=html;
+  document.getElementById('historyTrigger')?.addEventListener('click',()=>openHistory(idx,px,py));
+}
+
+/* ── PIXEL HISTORY MODAL ─────────────────────────────── */
+function openHistory(idx,px,py){historyCoord.textContent=`(${px}, ${py})`;historyList.innerHTML='';[...(pixelHistory[idx]||[])].reverse().forEach((e,i)=>{const isCurrent=i===0,nc=e.type==='golden'?'golden':e.type==='steal'?'stolen':'';const div=document.createElement('div');div.className='history-entry'+(isCurrent?' current':'');div.innerHTML=`<div class="history-entry-header"><span class="history-swatch" style="background:${e.color}"></span><span class="history-nick ${nc}">${escHtml(e.nick)}</span><span class="history-date">${e.date}</span>${isCurrent?'<span class="history-current-tag">current</span>':''}</div><div class="history-msg">${escHtml(e.msg)}</div>`;historyList.appendChild(div);});historyModal.classList.remove('hidden');}
+historyClose.addEventListener('click',()=>historyModal.classList.add('hidden'));
+historyModal.addEventListener('click',e=>{if(e.target===historyModal)historyModal.classList.add('hidden');});
+
+/* ── ACTION MODAL (single) ───────────────────────────── */
+function openActionModal(type){if(!selectedPixel)return;pendingAction=type;pendingMulti=false;const{px,py}=selectedPixel;const labels={claim:'Claim pixel',steal:'Steal pixel',golden:'Make golden pixel'};const subs={claim:`Claiming (${px}, ${py}) for $1.00`,steal:`Stealing (${px}, ${py}) for $5.00`,golden:`Golden pixel at (${px}, ${py}) for $10.00`};modalTitle.textContent=labels[type];modalSub.textContent=subs[type];document.getElementById('msPreviewWrap').style.display='none';modalNick.value='';modalMsg.value='';charCount.textContent='0 / 500';charCount.classList.remove('warn');filterError.classList.remove('visible');modalNick.style.borderColor='';modalMsg.style.borderColor='';modalConfirm.className='modal-confirm'+(type==='steal'?' steal-confirm':type==='golden'?' golden-confirm':'');actionModal.classList.remove('hidden');setTimeout(()=>modalNick.focus(),50);}
+
+[modalNick,modalMsg].forEach(el=>el.addEventListener('input',()=>{filterError.classList.remove('visible');el.style.borderColor='';}));
+modalCancel.addEventListener('click',()=>{actionModal.classList.add('hidden');pendingAction=null;pendingMulti=false;});
+actionModal.addEventListener('click',e=>{if(e.target===actionModal){actionModal.classList.add('hidden');pendingAction=null;pendingMulti=false;}});
+modalMsg.addEventListener('input',()=>{const l=modalMsg.value.length;charCount.textContent=`${l} / 500`;charCount.classList.toggle('warn',l>450);});
+modalConfirm.addEventListener('click',()=>{
+  const nick=modalNick.value.trim(),msg=modalMsg.value.trim();
+  if(!nick){modalNick.focus();modalNick.style.borderColor='#ff6644';setTimeout(()=>modalNick.style.borderColor='',800);return;}
+  if(!isClean(nick)||!isClean(msg)){filterError.classList.add('visible');if(!isClean(nick))modalNick.style.borderColor='#ff6644';if(!isClean(msg))modalMsg.style.borderColor='#ff6644';return;}
+  actionModal.classList.add('hidden');
+  if(pendingMulti)doMultiAction(nick,msg);else doAction(pendingAction,nick,msg);
+  pendingAction=null;pendingMulti=false;
+});
+btnClaim.addEventListener('click',()=>openActionModal('claim'));
+btnSteal.addEventListener('click',()=>openActionModal('steal'));
+btnGolden.addEventListener('click',()=>openActionModal('golden'));
+
+/* ── COMMIT SINGLE PIXEL ─────────────────────────────── */
+function doAction(type,nick,msg){if(!selectedPixel)return;const{px,py}=selectedPixel,idx=py*COLS+px,c32=hexToRgba(chosenColor);if(type==='claim'&&pixelState[idx]!==0)return;if(type==='steal'&&pixelState[idx]!==1)return;if(type==='golden'&&pixelState[idx]!==0)return;const wasUnclaimed=pixelState[idx]===0;pixelState[idx]=type==='golden'?2:1;pixelColor[idx]=c32;buf32[idx]=c32;ctx.putImageData(imageData,0,0);if(!pixelHistory[idx])pixelHistory[idx]=[];pixelHistory[idx].push({nick,msg,color:chosenColor,date:fmtDate(new Date()),isoDate:isoDate(new Date()),type});if(wasUnclaimed){placedCount++;soldCountEl.textContent=placedCount.toLocaleString();remainCountEl.textContent=(1000000-placedCount).toLocaleString();}addRecent(px,py,chosenColor,type);selectedPixel=null;updatePixelInfo();updateButtons();render();}
+
+/* ── COMMIT MULTI-SELECT BATCH ───────────────────────── */
+function doMultiAction(nick,msg){const now=new Date(),dateStr=fmtDate(now),isoStr=isoDate(now);let n=0;for(const[idx,color]of multiSelection){if(pixelState[idx]!==0)continue;const c32=hexToRgba(color);pixelState[idx]=1;pixelColor[idx]=c32;buf32[idx]=c32;if(!pixelHistory[idx])pixelHistory[idx]=[];pixelHistory[idx].push({nick,msg,color,date:dateStr,isoDate:isoStr,type:'claim'});n++;}ctx.putImageData(imageData,0,0);if(n>0){placedCount+=n;soldCountEl.textContent=placedCount.toLocaleString();remainCountEl.textContent=(1000000-placedCount).toLocaleString();if(recentList.firstChild?.textContent==='No activity yet')recentList.innerHTML='';const item=document.createElement('div');item.className='recent-item';item.innerHTML=`<div class="recent-swatch" style="background:${chosenColor}"></div><div><span class="recent-coord">${n} pixels</span> <span class="recent-type claim">claimed</span></div>`;recentList.insertBefore(item,recentList.firstChild);if(recentList.children.length>12)recentList.lastChild.remove();}multiSelection.clear();updateMsBar();render();}
+
+function addRecent(px,py,color,type){if(recentList.firstChild?.textContent==='No activity yet')recentList.innerHTML='';const labels={claim:'claimed',steal:'stolen',golden:'golden'};const item=document.createElement('div');item.className='recent-item';item.innerHTML=`<div class="recent-swatch ${type==='golden'?'golden':''}" style="background:${color}"></div><div><span class="recent-coord">(${px},${py})</span> <span class="recent-type ${type}">${labels[type]}</span></div>`;recentList.insertBefore(item,recentList.firstChild);if(recentList.children.length>12)recentList.lastChild.remove();}
+
+/* ── CANVAS EVENTS ───────────────────────────────────── */
+wrap.addEventListener('mousemove',e=>{const rect=wrap.getBoundingClientRect(),cx=e.clientX-rect.left,cy=e.clientY-rect.top;if(isDragging){const{w}=getWrapSize();viewX=dragStartViewX-(cx-dragStartX)/(w/COLS*zoom);viewY=dragStartViewY-(cy-dragStartY)/(w/COLS*zoom);clampView();render();return;}const{px,py}=canvasToPixel(cx,cy);if(px>=0&&px<COLS&&py>=0&&py<ROWS){const s=pixelState[py*COLS+px],inSel=multiMode&&multiSelection.has(py*COLS+px);hoverLabel.style.display='block';hoverLabel.textContent=`(${px},${py}) - ${s===0?'unclaimed':s===1?'claimed':'golden'}${inSel?' - selected':''}`;}else hoverLabel.style.display='none';});
+wrap.addEventListener('mouseleave',()=>hoverLabel.style.display='none');
+wrap.addEventListener('mousedown',e=>{const rect=wrap.getBoundingClientRect(),cx=e.clientX-rect.left,cy=e.clientY-rect.top;if(e.button===1||e.shiftKey){isDragging=true;dragStartX=cx;dragStartY=cy;dragStartViewX=viewX;dragStartViewY=viewY;wrap.style.cursor='grabbing';e.preventDefault();return;}const{px,py}=canvasToPixel(cx,cy);if(px<0||px>=COLS||py<0||py>=ROWS)return;if(multiMode){const idx=py*COLS+px;if(pixelState[idx]!==0){hoverLabel.style.display='block';hoverLabel.textContent=`(${px},${py}) - already claimed`;return;}if(multiSelection.has(idx))multiSelection.delete(idx);else multiSelection.set(idx,chosenColor);updateMsBar();render();}else{selectedPixel={px,py};updatePixelInfo();updateButtons();render();}});
+window.addEventListener('mouseup',()=>{isDragging=false;wrap.style.cursor=multiMode?'cell':'crosshair';});
+wrap.addEventListener('wheel',e=>{e.preventDefault();const rect=wrap.getBoundingClientRect(),cx=e.clientX-rect.left,cy=e.clientY-rect.top;const{px:pivotX,py:pivotY}=canvasToPixel(cx,cy);zoom=Math.min(80,Math.max(1,zoom*(e.deltaY<0?1.08:0.93)));const{w}=getWrapSize();viewX=pivotX-cx/(w/COLS*zoom);viewY=pivotY-cy/(w/COLS*zoom);clampView();render();},{passive:false});
+document.getElementById('zoomIn').addEventListener('click',()=>{zoom=Math.min(80,zoom*1.5);clampView();render();});
+document.getElementById('zoomOut').addEventListener('click',()=>{zoom=Math.max(1,zoom/1.5);clampView();render();});
+document.getElementById('zoomReset').addEventListener('click',()=>{zoom=1;viewX=0;viewY=0;render();});
+
+/* ── SEARCH ──────────────────────────────────────────── */
+document.getElementById('openSearchBtn').addEventListener('click',()=>{searchModal.classList.remove('hidden');const at=searchModal.querySelector('.search-tab.active')?.dataset.tab;setTimeout(()=>{if(at==='coord')document.getElementById('searchCoordX').focus();else if(at==='nick')document.getElementById('searchNickInput').focus();},50);});
+document.getElementById('searchCloseBtn').addEventListener('click',()=>searchModal.classList.add('hidden'));
+searchModal.addEventListener('click',e=>{if(e.target===searchModal)searchModal.classList.add('hidden');});
+document.querySelectorAll('.search-tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('.search-tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');const t=tab.dataset.tab;document.getElementById('searchCoordPane').style.display=t==='coord'?'block':'none';document.getElementById('searchNickPane').style.display=t==='nick'?'block':'none';document.getElementById('searchDatePane').style.display=t==='date'?'block':'none';document.getElementById('searchResultsWrap').style.display='none';setTimeout(()=>{if(t==='coord')document.getElementById('searchCoordX').focus();else if(t==='nick')document.getElementById('searchNickInput').focus();},50);});});
+
+function showSearchResults(results){const w2=document.getElementById('searchResultsWrap'),list=document.getElementById('searchResultsList'),countEl=document.getElementById('searchCount');list.innerHTML='';w2.style.display='block';if(!results.length){countEl.textContent='';list.innerHTML='<div class="search-empty">No pixels found</div>';return;}countEl.textContent=`${results.length} result${results.length!==1?'s':''}`;results.slice(0,50).forEach(r=>{const{px,py,entry,type}=r;const item=document.createElement('div');item.className='search-result-item'+(type==='golden'?' golden-result':'');item.innerHTML=`<div class="sr-swatch" style="background:${entry.color}"></div><div class="sr-body"><div><span class="sr-coord">(${px}, ${py})</span></div><div class="sr-nick">${escHtml(entry.nick)}</div><div class="sr-date">${entry.date}</div></div><span class="sr-type ${type}">${type==='golden'?'*':type}</span><span class="sr-goto">-></span>`;item.addEventListener('click',()=>{selectedPixel={px,py};zoom=Math.max(20,zoom);viewX=px-COLS/zoom/2;viewY=py-ROWS/zoom/2;clampView();updatePixelInfo();updateButtons();render();searchModal.classList.add('hidden');});list.appendChild(item);});if(results.length>50){const n=document.createElement('div');n.className='search-empty';n.textContent=`Showing 50 of ${results.length}`;list.appendChild(n);}}
+
+document.getElementById('searchCoordBtn').addEventListener('click',()=>{const x=parseInt(document.getElementById('searchCoordX').value),y=parseInt(document.getElementById('searchCoordY').value);if(isNaN(x)||isNaN(y)||x<0||x>=COLS||y<0||y>=ROWS){showSearchResults([]);document.getElementById('searchResultsList').innerHTML='<div class="search-empty">Enter valid X and Y (0-999)</div>';return;}const idx=y*COLS+x;if(!pixelState[idx])showSearchResults([]);else{const e=pixelHistory[idx]?.[pixelHistory[idx].length-1];if(e)showSearchResults([{px:x,py:y,entry:e,type:pixelState[idx]===2?'golden':e.type}]);else showSearchResults([]);}});
+['searchCoordX','searchCoordY'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('searchCoordBtn').click();}));
+document.getElementById('searchNickBtn').addEventListener('click',()=>{const q=document.getElementById('searchNickInput').value.trim().toLowerCase();if(!q)return;const results=[];for(const idxStr in pixelHistory){const idx=parseInt(idxStr),entries=pixelHistory[idx];if(!entries?.length)continue;const cur=entries[entries.length-1];if(cur.nick.toLowerCase().includes(q))results.push({px:idx%COLS,py:Math.floor(idx/COLS),entry:cur,type:pixelState[idx]===2?'golden':cur.type});}showSearchResults(results);});
+document.getElementById('searchNickInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('searchNickBtn').click();});
+document.getElementById('searchDateBtn').addEventListener('click',()=>{const val=document.getElementById('searchDateInput').value;if(!val)return;const results=[];for(const idxStr in pixelHistory){const idx=parseInt(idxStr),entries=pixelHistory[idx];if(!entries?.length)continue;const cur=entries[entries.length-1];if(cur.isoDate===val)results.push({px:idx%COLS,py:Math.floor(idx/COLS),entry:cur,type:pixelState[idx]===2?'golden':cur.type});}showSearchResults(results);});
+
+/* ── INITIAL RENDER ──────────────────────────────────── */
+render();
+</script>
+</body>
+</html>
