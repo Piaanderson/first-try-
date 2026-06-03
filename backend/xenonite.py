@@ -32,12 +32,12 @@ MIN_SEEDS      = 150
 MAX_SEEDS      = 1200
 
 # Ridge profile  (all in fraction of avg cell radius)
-RIDGE_HEIGHT   = 0.55      # outward displacement as fraction of cell radius
-VALLEY_DEPTH   = 0.20      # inward displacement at cell centre (fraction)
-RIDGE_SIGMA    = 0.07      # Gaussian width — keep tight for sharp wire edges
-NODE_SIGMA     = 0.12      # width of triple-point node bump
-NODE_HEIGHT    = 0.70      # node bump height (fraction of cell radius)
-SMOOTH_PASSES  = 0         # vertex-neighbour smoothing passes (0 = none, keeps sharpness)
+RIDGE_HEIGHT   = 0.28      # outward displacement as fraction of cell radius
+VALLEY_DEPTH   = 0.10      # inward displacement at cell centre (fraction)
+RIDGE_SIGMA    = 0.12      # Gaussian width — narrow enough for crisp wire, not a spike
+NODE_SIGMA     = 0.16      # width of triple-point node bump
+NODE_HEIGHT    = 0.35      # node bump height (fraction of cell radius)
+SMOOTH_PASSES  = 1         # 1 pass kills individual-vertex spikes without blurring ridges
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -112,8 +112,8 @@ def generate_xenonite(stl_bytes: bytes,
     actual_ridge  = ridge_height * cell_scale
     actual_valley = valley_depth * cell_scale
 
-    # Super-Gaussian (power=4): very flat top, then sharp drop — thin crisp wire
-    ridge_val  = actual_ridge  * _gaussian(norm_dist, RIDGE_SIGMA, power=4)
+    # Standard Gaussian (power=2): crisp but not spike-y
+    ridge_val  = actual_ridge  * _gaussian(norm_dist, RIDGE_SIGMA, power=2)
     # Valley: smooth inward push in cell interior, zero at wire
     valley_val = -actual_valley * (1.0 - _gaussian(norm_dist, 0.45, power=2))
     displacement = ridge_val + valley_val
