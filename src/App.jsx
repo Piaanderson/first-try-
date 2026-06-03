@@ -1,164 +1,210 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
+import ModelViewer from './components/ModelViewer'
 import './App.css'
 
-function UploadPanel({ id, label, badge, accept, description, onFile, file, processing, result, resultLabel }) {
+const API = 'http://localhost:8000'
+
+function DropZone({ accept, onFile, file }) {
   const inputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
 
   function handleDrop(e) {
     e.preventDefault()
     setDragging(false)
-    const dropped = e.dataTransfer.files[0]
-    if (dropped) onFile(dropped)
-  }
-
-  function handleChange(e) {
-    const selected = e.target.files[0]
-    if (selected) onFile(selected)
+    const f = e.dataTransfer.files[0]
+    if (f) onFile(f)
   }
 
   return (
-    <div className={`panel ${dragging ? 'dragging' : ''}`}>
-      <div className="panel-header">
-        <span className="badge">{badge}</span>
-        <h2>{label}</h2>
-        <p className="panel-desc">{description}</p>
-      </div>
-
-      <div
-        className="drop-zone"
-        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
-        onClick={() => inputRef.current.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && inputRef.current.click()}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept={accept}
-          onChange={handleChange}
-          style={{ display: 'none' }}
-        />
-        {file ? (
-          <div className="file-info">
-            <span className="file-icon">📄</span>
-            <span className="file-name">{file.name}</span>
-            <span className="file-size">{(file.size / 1024).toFixed(1)} KB</span>
-          </div>
-        ) : (
-          <div className="drop-prompt">
-            <span className="drop-icon">↑</span>
-            <span>Drop file here or click to browse</span>
-            <span className="drop-hint">Accepts: {accept}</span>
-          </div>
-        )}
-      </div>
-
-      {file && (
-        <button
-          className="process-btn"
-          onClick={() => onFile(file, true)}
-          disabled={processing}
-        >
-          {processing ? 'Processing…' : 'Apply Effect'}
-        </button>
-      )}
-
-      {result && (
-        <div className="result-area">
-          <div className="result-label">{resultLabel}</div>
-          <div className="result-preview">{result}</div>
+    <div
+      className={`drop-zone ${dragging ? 'dragging' : ''}`}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => inputRef.current.click()}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && inputRef.current.click()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        onChange={(e) => e.target.files[0] && onFile(e.target.files[0])}
+        style={{ display: 'none' }}
+      />
+      {file ? (
+        <div className="file-info">
+          <span className="file-icon">📄</span>
+          <span className="file-name">{file.name}</span>
+          <span className="file-size">{(file.size / 1024).toFixed(0)} KB</span>
+          <span className="drop-hint">Click or drop to replace</span>
+        </div>
+      ) : (
+        <div className="drop-prompt">
+          <span className="drop-icon">↑</span>
+          <span>Drop file here or click to browse</span>
+          <span className="drop-hint">Accepts: {accept}</span>
         </div>
       )}
     </div>
   )
 }
 
-// Stub: replace with real xenonite processing logic when algorithm is ready
-async function processXenonite(file) {
-  await new Promise(r => setTimeout(r, 1200))
-  return `[Xenonite pattern output for "${file.name}" will appear here]`
-}
+function XenonitePanel() {
+  const [file, setFile] = useState(null)
+  const [originalUrl, setOriginalUrl] = useState(null)
+  const [resultUrl, setResultUrl] = useState(null)
+  const [resultBlob, setResultBlob] = useState(null)
+  const [status, setStatus] = useState('idle') // idle | processing | done | error
+  const [error, setError] = useState(null)
 
-// Stub: replace with real texture processing logic when steps are provided
-async function processTexture(file) {
-  await new Promise(r => setTimeout(r, 1200))
-  return `[Textured display output for "${file.name}" will appear here]`
-}
+  // Density slider: maps to seed_ratio 0.005 – 0.04
+  const [density, setDensity] = useState(50)
+  const seedRatio = (0.005 + (density / 100) * 0.035).toFixed(4)
 
-export default function App() {
-  const [modelFile, setModelFile] = useState(null)
-  const [modelProcessing, setModelProcessing] = useState(false)
-  const [modelResult, setModelResult] = useState(null)
-
-  const [imageFile, setImageFile] = useState(null)
-  const [imageProcessing, setImageProcessing] = useState(false)
-  const [imageResult, setImageResult] = useState(null)
-
-  async function handleModel(file, run = false) {
-    setModelFile(file)
-    if (!run) return
-    setModelProcessing(true)
-    setModelResult(null)
-    const out = await processXenonite(file)
-    setModelResult(out)
-    setModelProcessing(false)
+  function handleFile(f) {
+    setFile(f)
+    setResultUrl(null)
+    setResultBlob(null)
+    setStatus('idle')
+    setError(null)
+    const url = URL.createObjectURL(f)
+    setOriginalUrl(url)
   }
 
-  async function handleImage(file, run = false) {
-    setImageFile(file)
-    if (!run) return
-    setImageProcessing(true)
-    setImageResult(null)
-    const out = await processTexture(file)
-    setImageResult(out)
-    setImageProcessing(false)
+  async function handleProcess() {
+    if (!file) return
+    setStatus('processing')
+    setResultUrl(null)
+    setError(null)
+
+    const form = new FormData()
+    form.append('file', file)
+    form.append('seed_ratio', seedRatio)
+
+    try {
+      const res = await fetch(`${API}/xenonite`, { method: 'POST', body: form })
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || `Server error ${res.status}`)
+      }
+      const blob = await res.blob()
+      setResultBlob(blob)
+      setResultUrl(URL.createObjectURL(blob))
+      setStatus('done')
+    } catch (e) {
+      setError(e.message)
+      setStatus('error')
+    }
+  }
+
+  function handleDownload() {
+    if (!resultBlob) return
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(resultBlob)
+    a.download = file.name.replace(/\.[^.]+$/, '') + '_xenonite.stl'
+    a.click()
   }
 
   return (
+    <div className="panel">
+      <div className="panel-header">
+        <span className="badge">Effect A</span>
+        <h2>Xenonite Pattern</h2>
+        <p className="panel-desc">
+          Upload a 3D model (.stl, .obj) and convert it into a hollow xenonite
+          lattice structure — geometric poles and circular nodes following the
+          surface of your mesh.
+        </p>
+      </div>
+
+      <DropZone
+        accept=".stl,.obj,.glb,.gltf,.ply"
+        onFile={handleFile}
+        file={file}
+      />
+
+      {file && (
+        <div className="controls">
+          <label className="slider-label">
+            <span>Pattern density</span>
+            <span className="slider-value">{density}%</span>
+          </label>
+          <input
+            type="range"
+            min={10}
+            max={100}
+            value={density}
+            onChange={(e) => setDensity(Number(e.target.value))}
+            className="slider"
+          />
+
+          <button
+            className="process-btn"
+            onClick={handleProcess}
+            disabled={status === 'processing'}
+          >
+            {status === 'processing' ? 'Generating…' : 'Generate Xenonite'}
+          </button>
+        </div>
+      )}
+
+      {error && <div className="error-box">{error}</div>}
+
+      <div className={`viewers ${originalUrl ? 'has-viewers' : ''}`}>
+        {originalUrl && (
+          <ModelViewer url={originalUrl} label="Original" color="#8888aa" />
+        )}
+        {resultUrl && (
+          <ModelViewer url={resultUrl} label="Xenonite" color="#b8a0ff" />
+        )}
+      </div>
+
+      {resultUrl && (
+        <button className="download-btn" onClick={handleDownload}>
+          ↓ Download xenonite.stl
+        </button>
+      )}
+    </div>
+  )
+}
+
+function TexturePanel() {
+  return (
+    <div className="panel panel-texture">
+      <div className="panel-header">
+        <span className="badge badge-b">Effect B</span>
+        <h2>Rocky's Texture</h2>
+        <p className="panel-desc">
+          Upload an image and apply Rocky's signature textured display effect.
+          Algorithm steps coming soon.
+        </p>
+      </div>
+      <div className="coming-soon">
+        <span className="coming-icon">🔜</span>
+        <span>Effect steps in progress</span>
+      </div>
+    </div>
+  )
+}
+
+export default function App() {
+  return (
     <div className="app">
       <header className="app-header">
-        <div className="header-inner">
-          <h1 className="site-title">Effect Studio</h1>
-          <p className="site-subtitle">Transform your files with generative effects</p>
-        </div>
+        <h1 className="site-title">Effect Studio</h1>
+        <p className="site-subtitle">Transform your files with generative effects</p>
       </header>
 
       <main className="panels">
-        <UploadPanel
-          id="xenonite"
-          badge="Effect A"
-          label="Xenonite Pattern"
-          accept=".obj,.stl,.glb,.gltf,.ply,.fbx"
-          description="Upload a 3D model and convert it into a xenonite pattern. Supports OBJ, STL, GLB, GLTF, PLY, and FBX files."
-          onFile={handleModel}
-          file={modelFile}
-          processing={modelProcessing}
-          result={modelResult}
-          resultLabel="Xenonite Output"
-        />
-
+        <XenonitePanel />
         <div className="divider" />
-
-        <UploadPanel
-          id="texture"
-          badge="Effect B"
-          label="Rocky's Texture"
-          accept="image/*"
-          description="Upload an image and apply Rocky's signature textured display effect. Accepts PNG, JPG, WEBP, and other image formats."
-          onFile={handleImage}
-          file={imageFile}
-          processing={imageProcessing}
-          result={imageResult}
-          resultLabel="Textured Output"
-        />
+        <TexturePanel />
       </main>
 
       <footer className="app-footer">
-        <span>Effect Studio — more effects coming soon</span>
+        Effect Studio — more effects coming soon
       </footer>
     </div>
   )
