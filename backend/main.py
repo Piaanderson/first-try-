@@ -1,7 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
-from xenonite import generate_xenonite
+
 
 app = FastAPI(title="Effect Studio API")
 
@@ -18,11 +18,14 @@ def health():
     return {"status": "ok"}
 
 
+from xenonite import generate_xenonite, RIDGE_HEIGHT, VALLEY_DEPTH, SEED_DENSITY
+
 @app.post("/xenonite")
 async def xenonite_endpoint(
     file: UploadFile = File(...),
-    seed_density: float = Form(0.0012),
-    wire_width: float = Form(0.22),
+    seed_density: float = Form(SEED_DENSITY),
+    ridge_height: float = Form(RIDGE_HEIGHT),
+    valley_depth: float = Form(VALLEY_DEPTH),
 ):
     data = await file.read()
     if len(data) == 0:
@@ -32,7 +35,8 @@ async def xenonite_endpoint(
         result = generate_xenonite(
             data,
             seed_density=seed_density,
-            wire_width=wire_width,
+            ridge_height=ridge_height,
+            valley_depth=valley_depth,
         )
     except Exception as e:
         raise HTTPException(422, str(e))
