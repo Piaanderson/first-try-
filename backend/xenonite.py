@@ -32,11 +32,12 @@ MIN_SEEDS      = 150
 MAX_SEEDS      = 1200
 
 # Ridge profile  (all in fraction of avg cell radius)
-RIDGE_HEIGHT   = 1.8       # outward displacement at wire centre
-VALLEY_DEPTH   = 0.6       # inward displacement at cell centre
-RIDGE_SIGMA    = 0.18      # Gaussian width of the ridge (fraction of cell radius)
-NODE_SIGMA     = 0.28      # width of the triple-point node bump
-NODE_HEIGHT    = 2.2       # height of node bump (slightly taller than wire)
+RIDGE_HEIGHT   = 0.55      # outward displacement as fraction of cell radius
+VALLEY_DEPTH   = 0.20      # inward displacement at cell centre (fraction)
+RIDGE_SIGMA    = 0.07      # Gaussian width — keep tight for sharp wire edges
+NODE_SIGMA     = 0.12      # width of triple-point node bump
+NODE_HEIGHT    = 0.70      # node bump height (fraction of cell radius)
+SMOOTH_PASSES  = 0         # vertex-neighbour smoothing passes (0 = none, keeps sharpness)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -52,8 +53,9 @@ def _dist_to_midplane_verts(verts: np.ndarray,
     return np.abs(((verts - mid) * normal).sum(axis=1))
 
 
-def _gaussian(x: np.ndarray, sigma: float) -> np.ndarray:
-    return np.exp(-0.5 * (x / sigma) ** 2)
+def _gaussian(x: np.ndarray, sigma: float, power: float = 2.0) -> np.ndarray:
+    """Super-Gaussian: higher power = flatter top, sharper falloff."""
+    return np.exp(-0.5 * (x / sigma) ** power)
 
 
 def generate_xenonite(stl_bytes: bytes,
@@ -105,45 +107,47 @@ def generate_xenonite(stl_bytes: bytes,
     norm_dist = edge_dist / np.maximum(cell_scale, 1e-6)   # 0=at wire, 1=cell centre
 
     # ── 3. Ridge profile ──────────────────────────────────────────────────────
-    # At norm_dist≈0 (Voronoi edge): ridge_height outward
-    # At norm_dist≈1 (cell centre): valley_depth inward
-    ridge_val  = ridge_height * _gaussian(norm_dist, RIDGE_SIGMA)
-    valley_val = -valley_depth * (1.0 - _gaussian(norm_dist, 0.5))
+    # Scale displacement by actual cell radius so it looks consistent regardless
+    # of model size.  cell_scale ≈ distance to 2nd seed ≈ cell diameter.
+    actual_ridge  = ridge_height * cell_scale
+    actual_valley = valley_depth * cell_scale
+
+    # Super-Gaussian (power=4): very flat top, then sharp drop — thin crisp wire
+    ridge_val  = actual_ridge  * _gaussian(norm_dist, RIDGE_SIGMA, power=4)
+    # Valley: smooth inward push in cell interior, zero at wire
+    valley_val = -actual_valley * (1.0 - _gaussian(norm_dist, 0.45, power=2))
     displacement = ridge_val + valley_val
 
     # ── 4. Triple-point node bumps ────────────────────────────────────────────
     if k >= 3:
-        s3   = seeds[nn[:, 2]]
-        ed2  = _dist_to_midplane_verts(verts, s1, s3)
-        ed3  = _dist_to_midplane_verts(verts, s2, s3)
-        nd2  = ed2 / np.maximum(cell_scale, 1e-6)
-        nd3  = ed3 / np.maximum(cell_scale, 1e-6)
+        s3  = seeds[nn[:, 2]]
+        ed2 = _dist_to_midplane_verts(verts, s1, s3)
+        ed3 = _dist_to_midplane_verts(verts, s2, s3)
+        nd2 = ed2 / np.maximum(cell_scale, 1e-6)
+        nd3 = ed3 / np.maximum(cell_scale, 1e-6)
 
-        # Proximity to triple point = all three edges close simultaneously
         triple_proximity = (
-            _gaussian(norm_dist, NODE_SIGMA) *
-            _gaussian(nd2, NODE_SIGMA) *
-            _gaussian(nd3, NODE_SIGMA)
+            _gaussian(norm_dist, NODE_SIGMA, power=2) *
+            _gaussian(nd2,       NODE_SIGMA, power=2) *
+            _gaussian(nd3,       NODE_SIGMA, power=2)
         )
-        node_bump = NODE_HEIGHT * triple_proximity
+        node_bump = NODE_HEIGHT * cell_scale * triple_proximity
         displacement = np.maximum(displacement, node_bump)
 
     # ── 5. Displace vertices along normals ────────────────────────────────────
-    # Smooth the displacement field to avoid high-frequency faceting artefacts
-    # by averaging each vertex's value with its neighbours
     vertex_normals = mesh.vertex_normals
 
-    # Build vertex adjacency for smoothing
-    edges = mesh.edges_unique
     smooth_disp = displacement.copy()
-    for _ in range(3):
-        acc   = smooth_disp.copy()
-        count = np.ones(len(verts))
-        np.add.at(acc,   edges[:, 0], smooth_disp[edges[:, 1]])
-        np.add.at(acc,   edges[:, 1], smooth_disp[edges[:, 0]])
-        np.add.at(count, edges[:, 0], 1)
-        np.add.at(count, edges[:, 1], 1)
-        smooth_disp = acc / count
+    if SMOOTH_PASSES > 0:
+        edges_u = mesh.edges_unique
+        for _ in range(SMOOTH_PASSES):
+            acc   = smooth_disp.copy()
+            count = np.ones(len(verts))
+            np.add.at(acc,   edges_u[:, 0], smooth_disp[edges_u[:, 1]])
+            np.add.at(acc,   edges_u[:, 1], smooth_disp[edges_u[:, 0]])
+            np.add.at(count, edges_u[:, 0], 1)
+            np.add.at(count, edges_u[:, 1], 1)
+            smooth_disp = acc / count
 
     new_verts = verts + vertex_normals * smooth_disp[:, np.newaxis]
 
