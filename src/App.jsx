@@ -59,9 +59,13 @@ function XenonitePanel() {
   const [status, setStatus] = useState('idle') // idle | processing | done | error
   const [error, setError] = useState(null)
 
-  // Density slider: maps to seed_ratio 0.005 – 0.04
+  // Density: maps to seed_density 0.0003 – 0.003
   const [density, setDensity] = useState(50)
-  const seedRatio = (0.005 + (density / 100) * 0.035).toFixed(4)
+  const seedDensity = (0.0003 + (density / 100) * 0.0027).toFixed(5)
+
+  // Wire width: maps to 0.10 – 0.40
+  const [wireWidth, setWireWidth] = useState(50)
+  const wireWidthVal = (0.10 + (wireWidth / 100) * 0.30).toFixed(3)
 
   function handleFile(f) {
     setFile(f)
@@ -81,7 +85,8 @@ function XenonitePanel() {
 
     const form = new FormData()
     form.append('file', file)
-    form.append('seed_ratio', seedRatio)
+    form.append('seed_density', seedDensity)
+    form.append('wire_width', wireWidthVal)
 
     try {
       const res = await fetch(`${API}/xenonite`, { method: 'POST', body: form })
@@ -132,11 +137,17 @@ function XenonitePanel() {
             <span className="slider-value">{density}%</span>
           </label>
           <input
-            type="range"
-            min={10}
-            max={100}
-            value={density}
+            type="range" min={10} max={100} value={density}
             onChange={(e) => setDensity(Number(e.target.value))}
+            className="slider"
+          />
+          <label className="slider-label">
+            <span>Wire thickness</span>
+            <span className="slider-value">{wireWidth}%</span>
+          </label>
+          <input
+            type="range" min={10} max={100} value={wireWidth}
+            onChange={(e) => setWireWidth(Number(e.target.value))}
             className="slider"
           />
 

@@ -1,137 +1,123 @@
 """
-Xenonite pattern generator.
+Xenonite pattern generator — correct approach.
+
+The xenonite pattern is a SURFACE LATTICE: take the input mesh's surface,
+scatter Voronoi seed points across it, then keep only the faces that lie
+near a Voronoi cell boundary (= the "wires"). Faces inside Voronoi cells
+are removed, leaving holes. The result looks like the original shape built
+from an interconnected lattice of lines with circular/hexagonal voids.
 
 Algorithm:
-  1. Load the input mesh and extract all surface triangles.
-  2. Sample a seed point per N triangles (controls pattern density).
-  3. Build a Delaunay triangulation of the seed points projected into a
-     local tangent frame — this gives us the connectivity graph whose
-     dual is the Voronoi diagram.
-  4. For every Delaunay edge whose two seed points are "close enough" on
-     the surface, create a thin tube (cylinder) between them.
-  5. Add a small sphere at every junction node.
-  6. Merge all geometry and export as a binary STL.
+  1. Load mesh, extract face centroids.
+  2. Scatter N seed points randomly across the surface (proportional to area).
+  3. For each face centroid, find its 2 nearest seeds. The boundary between
+     those two seeds is the Voronoi edge passing through that face.
+  4. Compute the face's distance to that boundary line. Faces within
+     wire_width of a boundary are KEPT; faces further away are REMOVED.
+  5. Optionally also keep faces near a 3rd seed (triple-point nodes = circles).
+  6. Export the masked mesh as a binary STL.
 """
 
 import io
 import numpy as np
 import trimesh
-from scipy.spatial import Delaunay, cKDTree
+from scipy.spatial import cKDTree
 
 
-# ── tuneable parameters ───────────────────────────────────────────────────────
-SEED_RATIO      = 0.04   # fraction of faces that get a seed point (capped by MAX_SEEDS)
-MAX_SEEDS       = 600    # hard cap — keeps output file size manageable
-TUBE_RADIUS     = 0.18   # radius of connecting tubes (in model units)
-NODE_RADIUS     = 0.32   # radius of junction spheres
-MAX_EDGE_FACTOR = 3.5    # edges longer than factor*median_edge are pruned
-TUBE_SEGMENTS   = 6      # cross-section segments per tube (keep low for speed)
-NODE_SEGMENTS   = 1      # subdivision level for node spheres (1=80 faces, 3=1280)
+# ── tuneable defaults ─────────────────────────────────────────────────────────
+SEED_DENSITY    = 0.0012   # seeds per unit² of surface area
+MIN_SEEDS       = 80
+MAX_SEEDS       = 800
+WIRE_WIDTH      = 0.22     # fraction of avg cell radius kept as wire
+NODE_FACTOR     = 1.6      # triple-points (circle nodes) are wider
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _cylinder_between(p1: np.ndarray, p2: np.ndarray,
-                      radius: float, sections: int) -> trimesh.Trimesh:
-    """Return a cylinder mesh connecting two 3-D points."""
-    vec   = p2 - p1
-    length = float(np.linalg.norm(vec))
-    if length < 1e-8:
-        return trimesh.Trimesh()
-
-    cyl = trimesh.creation.cylinder(
-        radius=radius, height=length, sections=sections
-    )
-    # cylinder is centred at origin along Z; rotate then translate
-    z_axis = np.array([0.0, 0.0, 1.0])
-    axis   = vec / length
-    cross  = np.cross(z_axis, axis)
-    dot    = np.dot(z_axis, axis)
-
-    if np.linalg.norm(cross) < 1e-8:
-        # parallel or anti-parallel
-        if dot < 0:
-            cyl.apply_transform(trimesh.transformations.rotation_matrix(
-                np.pi, [1, 0, 0]))
-    else:
-        angle = np.arccos(np.clip(dot, -1, 1))
-        cyl.apply_transform(
-            trimesh.transformations.rotation_matrix(angle, cross / np.linalg.norm(cross))
-        )
-
-    mid = (p1 + p2) / 2.0
-    cyl.apply_translation(mid)
-    return cyl
-
-
-def _sphere_at(center: np.ndarray, radius: float, subdivisions: int) -> trimesh.Trimesh:
-    sphere = trimesh.creation.icosphere(subdivisions=subdivisions, radius=radius)
-    sphere.apply_translation(center)
-    return sphere
+def _dist_to_midplane(points: np.ndarray,
+                      a: np.ndarray,
+                      b: np.ndarray) -> np.ndarray:
+    """
+    Voronoi boundary between seed arrays a[i] and b[i] is the perpendicular
+    bisector plane for each pair. Return each point's signed distance to its
+    pair's plane. a, b, points all have shape (N, 3).
+    """
+    mid    = (a + b) / 2.0          # (N, 3)
+    ab     = b - a                   # (N, 3)
+    ab_len = np.linalg.norm(ab, axis=1, keepdims=True)  # (N, 1)
+    ab_len = np.where(ab_len < 1e-9, 1.0, ab_len)
+    normal = ab / ab_len             # (N, 3)
+    diff   = points - mid            # (N, 3)
+    return np.abs((diff * normal).sum(axis=1))  # (N,)
 
 
 def generate_xenonite(stl_bytes: bytes,
-                      seed_ratio: float = SEED_RATIO,
-                      tube_radius: float = TUBE_RADIUS,
-                      node_radius: float = NODE_RADIUS) -> bytes:
+                      seed_density: float = SEED_DENSITY,
+                      wire_width: float = WIRE_WIDTH) -> bytes:
     """
-    Accept raw STL bytes, return xenonite-pattern STL bytes.
+    Accept raw STL bytes, return xenonite-patterned STL bytes.
     """
     mesh = trimesh.load(io.BytesIO(stl_bytes), file_type="stl", force="mesh")
-
     if not isinstance(mesh, trimesh.Trimesh):
         raise ValueError("Could not parse mesh from uploaded file.")
 
-    # ── 1. Sample seed points on face centroids ───────────────────────────────
-    face_centers = mesh.triangles_center          # (N, 3)
-    n_faces      = len(face_centers)
-    n_seeds      = max(50, min(MAX_SEEDS, int(n_faces * seed_ratio)))
+    # ── 1. Sample seeds weighted by face area ─────────────────────────────────
+    face_centers = mesh.triangles_center          # (F, 3)
+    face_areas   = mesh.area_faces                # (F,)
+    total_area   = float(face_areas.sum())
 
-    rng     = np.random.default_rng(42)
-    indices = rng.choice(n_faces, size=n_seeds, replace=False)
-    seeds   = face_centers[indices]               # (n_seeds, 3)
+    n_seeds = int(np.clip(
+        total_area * seed_density,
+        MIN_SEEDS, MAX_SEEDS
+    ))
 
-    # ── 2. Delaunay triangulation of seeds ────────────────────────────────────
-    # Project to 2-D for triangulation using PCA of seed cloud
-    centroid = seeds.mean(axis=0)
-    _, _, Vt = np.linalg.svd(seeds - centroid)
-    seeds_2d = (seeds - centroid) @ Vt[:2].T      # (n_seeds, 2)
+    rng   = np.random.default_rng(42)
+    probs = face_areas / total_area
+    idx   = rng.choice(len(face_centers), size=n_seeds, replace=False, p=probs)
+    seeds = face_centers[idx]                     # (S, 3)
 
-    tri = Delaunay(seeds_2d)
+    # ── 2. For every face find its 3 nearest seeds ────────────────────────────
+    tree      = cKDTree(seeds)
+    dists, nn = tree.query(face_centers, k=min(3, n_seeds))
+    # nn shape: (F, k)  — indices into seeds
 
-    # Collect unique edges from Delaunay simplices
-    edges = set()
-    for simplex in tri.simplices:
-        for i in range(3):
-            a, b = simplex[i], simplex[(i + 1) % 3]
-            edges.add((min(a, b), max(a, b)))
+    # ── 3. Compute distance of each face centroid to Voronoi edge (1st & 2nd) ─
+    s1 = seeds[nn[:, 0]]        # nearest seed
+    s2 = seeds[nn[:, 1]]        # 2nd nearest
 
-    # ── 3. Prune long edges ───────────────────────────────────────────────────
-    edge_list    = np.array(list(edges))
-    edge_lengths = np.linalg.norm(seeds[edge_list[:, 0]] - seeds[edge_list[:, 1]], axis=1)
-    median_len   = float(np.median(edge_lengths))
-    keep         = edge_lengths < MAX_EDGE_FACTOR * median_len
-    edge_list    = edge_list[keep]
+    edge_dist = _dist_to_midplane(face_centers, s1, s2)
 
-    # ── 4. Build tubes and nodes ──────────────────────────────────────────────
-    parts: list[trimesh.Trimesh] = []
+    # ── 4. Adaptive wire width ────────────────────────────────────────────────
+    # Use the distance between a face's 1st and 2nd seed as cell-local scale
+    cell_scale = dists[:, 1]          # distance to 2nd seed ≈ half cell diameter
+    threshold  = wire_width * cell_scale
 
-    used_nodes: set[int] = set()
-    for a, b in edge_list:
-        cyl = _cylinder_between(seeds[a], seeds[b], tube_radius, TUBE_SEGMENTS)
-        if len(cyl.vertices):
-            parts.append(cyl)
-        used_nodes.add(a)
-        used_nodes.add(b)
+    on_wire = edge_dist < threshold
 
-    for idx in used_nodes:
-        sphere = _sphere_at(seeds[idx], node_radius, NODE_SEGMENTS)
-        parts.append(sphere)
+    # ── 5. Also keep triple-point nodes (where 3 cells almost meet) ──────────
+    if n_seeds >= 3:
+        s3        = seeds[nn[:, 2]]
+        edge_dist2 = _dist_to_midplane(face_centers, s1, s3)
+        edge_dist3 = _dist_to_midplane(face_centers, s2, s3)
+        # A triple point is where all three edges are close
+        near_triple = (
+            (edge_dist  < NODE_FACTOR * threshold) &
+            (edge_dist2 < NODE_FACTOR * threshold) &
+            (edge_dist3 < NODE_FACTOR * threshold)
+        )
+        on_wire |= near_triple
 
-    if not parts:
-        raise ValueError("No geometry was generated — try adjusting density.")
+    # ── 6. Build masked mesh ──────────────────────────────────────────────────
+    kept_faces = mesh.faces[on_wire]
+    if len(kept_faces) == 0:
+        raise ValueError("No faces passed the wire filter — try increasing wire_width.")
 
-    # ── 5. Merge and export ───────────────────────────────────────────────────
-    result = trimesh.util.concatenate(parts)
-    out    = io.BytesIO()
+    result = trimesh.Trimesh(
+        vertices=mesh.vertices,
+        faces=kept_faces,
+        process=False,
+    )
+    result.remove_unreferenced_vertices()
+
+    out = io.BytesIO()
     result.export(out, file_type="stl")
     return out.getvalue()

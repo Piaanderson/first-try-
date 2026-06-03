@@ -21,9 +21,8 @@ def health():
 @app.post("/xenonite")
 async def xenonite_endpoint(
     file: UploadFile = File(...),
-    seed_ratio: float = Form(0.04),
-    tube_radius: float = Form(0.18),
-    node_radius: float = Form(0.32),
+    seed_density: float = Form(0.0012),
+    wire_width: float = Form(0.22),
 ):
     data = await file.read()
     if len(data) == 0:
@@ -32,9 +31,8 @@ async def xenonite_endpoint(
     try:
         result = generate_xenonite(
             data,
-            seed_ratio=seed_ratio,
-            tube_radius=tube_radius,
-            node_radius=node_radius,
+            seed_density=seed_density,
+            wire_width=wire_width,
         )
     except Exception as e:
         raise HTTPException(422, str(e))
