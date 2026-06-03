@@ -1,0 +1,256 @@
+/* ── Layout ── */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0a0a0e;
+  color: #e2e2ee;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Header ── */
+.app-header {
+  border-bottom: 1px solid #1f1f2e;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.site-title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  background: linear-gradient(135deg, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 6px;
+}
+
+.site-subtitle {
+  color: #6b6b88;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* ── Main panels ── */
+.panels {
+  flex: 1;
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.divider {
+  width: 1px;
+  background: #1f1f2e;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    height: 1px;
+  }
+}
+
+/* ── Panel ── */
+.panel {
+  flex: 1;
+  padding: 40px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  transition: background 0.2s;
+
+  @media (max-width: 768px) {
+    padding: 28px 20px;
+  }
+}
+
+.panel.dragging {
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: rgba(124, 58, 237, 0.15);
+  color: #a78bfa;
+  width: fit-content;
+}
+
+.panel:last-of-type .badge {
+  background: rgba(244, 114, 182, 0.15);
+  color: #f472b6;
+}
+
+.panel h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: #e2e2ee;
+}
+
+.panel-desc {
+  font-size: 0.875rem;
+  color: #6b6b88;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Drop zone ── */
+.drop-zone {
+  border: 2px dashed #2a2a40;
+  border-radius: 12px;
+  padding: 36px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  min-height: 160px;
+
+  &:hover {
+    border-color: #7c3aed;
+    background: rgba(124, 58, 237, 0.04);
+  }
+}
+
+.panel:last-of-type .drop-zone:hover {
+  border-color: #db2777;
+  background: rgba(244, 114, 182, 0.04);
+}
+
+.panel.dragging .drop-zone {
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.drop-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #6b6b88;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.drop-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #3a3a55;
+}
+
+.drop-hint {
+  font-size: 0.75rem;
+  color: #3a3a55;
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.file-icon {
+  font-size: 2rem;
+}
+
+.file-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #c4c4d8;
+  word-break: break-all;
+  text-align: center;
+}
+
+.file-size {
+  font-size: 0.75rem;
+  color: #6b6b88;
+}
+
+/* ── Process button ── */
+.process-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.panel:last-of-type .process-btn {
+  background: linear-gradient(135deg, #db2777, #be185d);
+}
+
+/* ── Result area ── */
+.result-area {
+  border: 1px solid #1f1f2e;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.result-label {
+  background: #111118;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b6b88;
+  border-bottom: 1px solid #1f1f2e;
+}
+
+.result-preview {
+  padding: 20px 16px;
+  font-size: 0.85rem;
+  color: #8b8ba8;
+  font-style: italic;
+  background: #0d0d16;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Footer ── */
+.app-footer {
+  border-top: 1px solid #1f1f2e;
+  padding: 20px 24px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #3a3a55;
+}
