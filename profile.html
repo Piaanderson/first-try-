@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astrophag — ArtFight Profile Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* === PREVIEW WRAPPER (not part of ArtFight paste) === */
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      background: #05000f url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Ccircle cx='20' cy='40' r='1' fill='%23ffffff22'/%3E%3Ccircle cx='80' cy='10' r='1.5' fill='%23ffffff33'/%3E%3Ccircle cx='150' cy='60' r='1' fill='%23ffffff1a'/%3E%3Ccircle cx='200' cy='25' r='2' fill='%23ffffff2a'/%3E%3Ccircle cx='260' cy='80' r='1' fill='%23ffffff22'/%3E%3Ccircle cx='50' cy='130' r='1.5' fill='%23ffffff2a'/%3E%3Ccircle cx='100' cy='180' r='1' fill='%23ffffff18'/%3E%3Ccircle cx='220' cy='150' r='1' fill='%23ffffff33'/%3E%3Ccircle cx='280' cy='200' r='1.5' fill='%23ffffff1a'/%3E%3Ccircle cx='30' cy='250' r='1' fill='%23ffffff2a'/%3E%3Ccircle cx='170' cy='270' r='2' fill='%23ffffff18'/%3E%3Ccircle cx='240' cy='290' r='1' fill='%23ffffff22'/%3E%3C/svg%3E");
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .preview-label {
+      color: #9D4EDD;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      letter-spacing: 3px;
+      margin-bottom: 16px;
+      opacity: 0.7;
+    }
+    .copy-note {
+      margin-top: 40px;
+      padding: 16px 24px;
+      background: #0a0020;
+      border: 1px solid #9D4EDD44;
+      border-radius: 4px;
+      color: #c77dff;
+      font-family: monospace;
+      font-size: 13px;
+      max-width: 720px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .copy-note strong { color: #48cae4; }
+  </style>
+</head>
+<body>
+
+<div class="preview-label">▶ BROWSER PREVIEW — ARTFIGHT PROFILE CONTENT ◀</div>
+
+<!-- ============================================================
+     COPY EVERYTHING BETWEEN THESE COMMENTS INTO ARTFIGHT
+     ============================================================ -->
+
+<style>
+/* — Fonts — */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Caveat:wght@400;600&display=swap');
+
+/* — Reset & base — */
+.af-profile * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* — Outer HUD panel — */
+.af-profile {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 24px;
+  background:
+    radial-gradient(ellipse at 30% 20%, #2d0057 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, #1a0040 0%, transparent 55%),
+    #08000f;
+  border: 2px solid #5a5a72;
+  box-shadow:
+    0 0 0 1px #2a2a40,
+    0 0 20px #9D4EDD44,
+    inset 0 0 40px #1a003344;
+  font-family: 'Caveat', cursive;
+  color: #d4b8f0;
+}
+
+/* — Yellow corner accents — */
+.af-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: #f4c430;
+  border-radius: 50%;
+  border: 3px solid #a88000;
+  box-shadow: 0 0 8px #f4c43088;
+}
+.af-corner.tl { top: -6px;  left: -6px; }
+.af-corner.tr { top: -6px;  right: -6px; }
+.af-corner.bl { bottom: -6px; left: -6px; }
+.af-corner.br { bottom: -6px; right: -6px; }
+
+/* — Horizontal rule lines (HUD detail) — */
+.af-hud-line {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #9D4EDD88, #48cae466, transparent);
+  margin: 18px 0;
+}
+
+/* — Bio section — */
+.af-bio {
+  text-align: center;
+  padding: 10px 12px 4px;
+}
+.af-bio p {
+  font-family: 'Caveat', cursive;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: #e0ccff;
+}
+
+/* — Two-column row — */
+.af-columns {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.af-col {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 16px;
+}
+.af-col-divider {
+  width: 1px;
+  align-self: stretch;
+  background: linear-gradient(180deg, transparent, #9D4EDD99, transparent);
+  margin: 8px 0;
+}
+
+/* — Section headers — */
+.af-section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #48cae4;
+  text-shadow: 0 0 8px #48cae488;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+/* — Past artfights badges — */
+.af-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.af-badges img {
+  height: 48px;
+  image-rendering: pixelated;
+  border: 1px solid #9D4EDD44;
+  border-radius: 3px;
+}
+
+/* — Flags grid (2 rows × 3 cols) — */
+.af-flags {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.af-flags img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #9D4EDD55;
+  box-shadow: 0 0 6px #9D4EDD33;
+}
+
+/* — Scanline overlay (subtle sci-fi texture) — */
+.af-profile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    #00000011 3px,
+    #00000011 4px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+</style>
+
+<div class="af-profile">
+  <!-- Corner bolts -->
+  <div class="af-corner tl"></div>
+  <div class="af-corner tr"></div>
+  <div class="af-corner bl"></div>
+  <div class="af-corner br"></div>
+
+  <!-- Bio -->
+  <div class="af-bio">
+    <p>
+      <!-- =====================================================
+           REPLACE THIS WITH YOUR BIO TEXT
+           ===================================================== -->
+      Your bio goes here! Pronouns • fandoms • whatever you want to say.
+      Project Hail Mary fan &amp; digital artist. Welcome to my corner of space. 🚀
+    </p>
+  </div>
+
+  <div class="af-hud-line"></div>
+
+  <!-- Two-column section -->
+  <div class="af-columns">
+
+    <!-- Left: Past ArtFights -->
+    <div class="af-col">
+      <div class="af-section-title">Past Artfights</div>
+      <div class="af-badges">
+        <!-- =====================================================
+             ADD PAST ARTFIGHT BADGE IMAGE URLS BELOW
+             Example: <img src="YOUR_IMAGE_URL_HERE" alt="2025 Crystals">
+             ===================================================== -->
+        <img src="https://i.imgur.com/REPLACE_ME.png" alt="2025 Crystals badge — replace this URL">
+      </div>
+    </div>
+
+    <!-- Vertical divider -->
+    <div class="af-col-divider"></div>
+
+    <!-- Right: Flags -->
+    <div class="af-col">
+      <div class="af-section-title">My Flags</div>
+      <div class="af-flags">
+        <!-- =====================================================
+             REPLACE EACH src="..." WITH YOUR FLAG IMAGE URLS
+             You have 6 flags — keep all 6 <img> tags
+             ===================================================== -->
+        <img src="https://i.imgur.com/REPLACE_1.png" alt="flag">
+        <img src="https://i.imgur.com/REPLACE_2.png" alt="flag">
+        <img src="https://i.imgur.com/REPLACE_3.png" alt="flag">
+        <img src="https://i.imgur.com/REPLACE_4.png" alt="flag">
+        <img src="https://i.imgur.com/REPLACE_5.png" alt="flag">
+        <img src="https://i.imgur.com/REPLACE_6.png" alt="flag">
+      </div>
+    </div>
+
+  </div><!-- end .af-columns -->
+
+  <div class="af-hud-line"></div>
+
+</div><!-- end .af-profile -->
+
+<!-- ============================================================
+     END OF ARTFIGHT PASTE
+     ============================================================ -->
+
+<div class="copy-note">
+  <strong>HOW TO USE:</strong><br><br>
+  1. Open your ArtFight profile → Edit → find the big HTML text box<br>
+  2. Select all text in that box and delete it<br>
+  3. Copy everything between the two <code>COPY EVERYTHING</code> comment lines above<br>
+  4. Paste it into the ArtFight box and save<br><br>
+  <strong>TO CUSTOMIZE:</strong><br>
+  • Replace the bio paragraph text with your own words<br>
+  • Replace each <code>REPLACE_ME</code> image URL with a real hosted image URL (Imgur works great)<br>
+  • Colors are defined in the <code>&lt;style&gt;</code> block — look for hex codes like <code>#48cae4</code> to tweak
+</div>
+
+</body>
+</html>
