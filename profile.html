@@ -4,14 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Astrophag — ArtFight Profile Preview</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    /* === PREVIEW WRAPPER (not part of ArtFight paste) === */
+    /* Local preview: load font from file next to this HTML */
+    @font-face {
+      font-family: 'HailMarySans';
+      src: url('./Hail_Mary_Sans.otf') format('opentype');
+    }
     body {
       margin: 0;
       padding: 40px 20px;
-      background: #05000f url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Ccircle cx='20' cy='40' r='1' fill='%23ffffff22'/%3E%3Ccircle cx='80' cy='10' r='1.5' fill='%23ffffff33'/%3E%3Ccircle cx='150' cy='60' r='1' fill='%23ffffff1a'/%3E%3Ccircle cx='200' cy='25' r='2' fill='%23ffffff2a'/%3E%3Ccircle cx='260' cy='80' r='1' fill='%23ffffff22'/%3E%3Ccircle cx='50' cy='130' r='1.5' fill='%23ffffff2a'/%3E%3Ccircle cx='100' cy='180' r='1' fill='%23ffffff18'/%3E%3Ccircle cx='220' cy='150' r='1' fill='%23ffffff33'/%3E%3Ccircle cx='280' cy='200' r='1.5' fill='%23ffffff1a'/%3E%3Ccircle cx='30' cy='250' r='1' fill='%23ffffff2a'/%3E%3Ccircle cx='170' cy='270' r='2' fill='%23ffffff18'/%3E%3Ccircle cx='240' cy='290' r='1' fill='%23ffffff22'/%3E%3C/svg%3E");
-      font-family: sans-serif;
+      background: #05000f;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -23,6 +25,7 @@
       letter-spacing: 3px;
       margin-bottom: 16px;
       opacity: 0.7;
+      font-family: monospace;
     }
     .copy-note {
       margin-top: 40px;
@@ -36,8 +39,10 @@
       max-width: 720px;
       width: 100%;
       box-sizing: border-box;
+      line-height: 1.7;
     }
     .copy-note strong { color: #48cae4; }
+    code { background: #1a003344; padding: 1px 4px; border-radius: 3px; }
   </style>
 </head>
 <body>
@@ -45,17 +50,22 @@
 <div class="preview-label">▶ BROWSER PREVIEW — ARTFIGHT PROFILE CONTENT ◀</div>
 
 <!-- ============================================================
-     COPY EVERYTHING BETWEEN THESE COMMENTS INTO ARTFIGHT
+     COPY EVERYTHING BETWEEN THESE TWO COMMENT LINES INTO ARTFIGHT
+     (start copying from the <style> tag below)
      ============================================================ -->
 
 <style>
-/* — Fonts — */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Caveat:wght@400;600&display=swap');
+/* Fonts — Orbitron from Google, HailMarySans from GitHub */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
 
-/* — Reset & base — */
+@font-face {
+  font-family: 'HailMarySans';
+  src: url('https://raw.githubusercontent.com/piaanderson/first-try-/refs/heads/claude/brave-cannon-3XVtH/Hail_Mary_Sans.otf') format('opentype');
+}
+
 .af-profile * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* — Outer HUD panel — */
+/* Outer HUD panel */
 .af-profile {
   position: relative;
   width: 100%;
@@ -71,11 +81,9 @@
     0 0 0 1px #2a2a40,
     0 0 20px #9D4EDD44,
     inset 0 0 40px #1a003344;
-  font-family: 'Caveat', cursive;
-  color: #d4b8f0;
 }
 
-/* — Yellow corner accents — */
+/* Yellow corner bolt accents */
 .af-corner {
   position: absolute;
   width: 22px;
@@ -90,7 +98,7 @@
 .af-corner.bl { bottom: -6px; left: -6px; }
 .af-corner.br { bottom: -6px; right: -6px; }
 
-/* — Horizontal rule lines (HUD detail) — */
+/* HUD decorative lines */
 .af-hud-line {
   width: 100%;
   height: 1px;
@@ -98,19 +106,19 @@
   margin: 18px 0;
 }
 
-/* — Bio section — */
+/* Bio */
 .af-bio {
   text-align: center;
   padding: 10px 12px 4px;
 }
 .af-bio p {
-  font-family: 'Caveat', cursive;
-  font-size: 1.25rem;
-  line-height: 1.6;
+  font-family: 'HailMarySans', 'Caveat', cursive;
+  font-size: 1.3rem;
+  line-height: 1.7;
   color: #e0ccff;
 }
 
-/* — Two-column row — */
+/* Two-column layout */
 .af-columns {
   display: flex;
   gap: 0;
@@ -129,7 +137,7 @@
   margin: 8px 0;
 }
 
-/* — Section headers — */
+/* Section headers */
 .af-section-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.75rem;
@@ -141,7 +149,7 @@
   text-transform: uppercase;
 }
 
-/* — Past artfights badges — */
+/* Past artfight badges */
 .af-badges {
   display: flex;
   flex-direction: column;
@@ -149,13 +157,13 @@
   align-items: flex-start;
 }
 .af-badges img {
-  height: 48px;
+  height: 52px;
   image-rendering: pixelated;
   border: 1px solid #9D4EDD44;
   border-radius: 3px;
 }
 
-/* — Flags grid (2 rows × 3 cols) — */
+/* Flags — 2 rows × 3 cols */
 .af-flags {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -170,7 +178,7 @@
   box-shadow: 0 0 6px #9D4EDD33;
 }
 
-/* — Scanline overlay (subtle sci-fi texture) — */
+/* Scanline overlay */
 .af-profile::after {
   content: '';
   position: absolute;
@@ -183,85 +191,68 @@
     #00000011 4px
   );
   pointer-events: none;
-  border-radius: inherit;
 }
 </style>
 
 <div class="af-profile">
-  <!-- Corner bolts -->
   <div class="af-corner tl"></div>
   <div class="af-corner tr"></div>
   <div class="af-corner bl"></div>
   <div class="af-corner br"></div>
 
-  <!-- Bio -->
+  <!-- Bio — edit the text inside <p> to be your own! -->
   <div class="af-bio">
     <p>
-      <!-- =====================================================
-           REPLACE THIS WITH YOUR BIO TEXT
-           ===================================================== -->
-      Your bio goes here! Pronouns • fandoms • whatever you want to say.
-      Project Hail Mary fan &amp; digital artist. Welcome to my corner of space. 🚀
+      [ YOUR BIO GOES HERE — edit this text however you like! ]<br>
+      Pronouns &bull; fandoms &bull; whatever you want to say.
     </p>
   </div>
 
   <div class="af-hud-line"></div>
 
-  <!-- Two-column section -->
   <div class="af-columns">
 
     <!-- Left: Past ArtFights -->
     <div class="af-col">
       <div class="af-section-title">Past Artfights</div>
       <div class="af-badges">
-        <!-- =====================================================
-             ADD PAST ARTFIGHT BADGE IMAGE URLS BELOW
-             Example: <img src="YOUR_IMAGE_URL_HERE" alt="2025 Crystals">
-             ===================================================== -->
-        <img src="https://i.imgur.com/REPLACE_ME.png" alt="2025 Crystals badge — replace this URL">
+        <img src="https://f2.toyhou.se/file/f2-toyhou-se/images/102884241_sVQavpGR6QTLI0u.png" alt="2025 Crystals">
       </div>
     </div>
 
-    <!-- Vertical divider -->
     <div class="af-col-divider"></div>
 
     <!-- Right: Flags -->
     <div class="af-col">
       <div class="af-section-title">My Flags</div>
       <div class="af-flags">
-        <!-- =====================================================
-             REPLACE EACH src="..." WITH YOUR FLAG IMAGE URLS
-             You have 6 flags — keep all 6 <img> tags
-             ===================================================== -->
-        <img src="https://i.imgur.com/REPLACE_1.png" alt="flag">
-        <img src="https://i.imgur.com/REPLACE_2.png" alt="flag">
-        <img src="https://i.imgur.com/REPLACE_3.png" alt="flag">
-        <img src="https://i.imgur.com/REPLACE_4.png" alt="flag">
-        <img src="https://i.imgur.com/REPLACE_5.png" alt="flag">
-        <img src="https://i.imgur.com/REPLACE_6.png" alt="flag">
+        <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/720722a7-9b8a-467d-8152-fac7bd1ab48f/dm4wn70-655a16d3-8679-41e1-8c9c-4b58c6a9d593.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi83MjA3MjJhNy05YjhhLTQ2N2QtODE1Mi1mYWM3YmQxYWI0OGYvZG00d243MC02NTVhMTZkMy04Njc5LTQxZTEtOGM5Yy00YjU4YzZhOWQ1OTMucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.7NC4U4WfcwYglEC1ntn05TZENlc7pwT0lk_L2ZlNsto" alt="flag">
+        <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/720722a7-9b8a-467d-8152-fac7bd1ab48f/dhj0oad-fffc89df-c9ac-4aaa-8936-0a83fc3be96b.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi83MjA3MjJhNy05YjhhLTQ2N2QtODE1Mi1mYWM3YmQxYWI0OGYvZGhqMG9hZC1mZmZjODlkZi1jOWFjLTRhYWEtODkzNi0wYTgzZmMzYmU5NmIucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.6iFqM2YqPsyhY9yHpaA1OA6suLfbOfFw3WoaENs3yyQ" alt="flag">
+        <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/720722a7-9b8a-467d-8152-fac7bd1ab48f/dhj0o7z-30bb9201-ee3a-4916-bdbc-6b90a61b28b3.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi83MjA3MjJhNy05YjhhLTQ2N2QtODE1Mi1mYWM3YmQxYWI0OGYvZGhqMG83ei0zMGJiOTIwMS1lZTNhLTQ5MTYtYmRiYy02YjkwYTYxYjI4YjMucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.W5vUtZFZJkEYVYXoolRsxij5PoyeUx-mUO59Ybi2sEM" alt="flag">
+        <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/720722a7-9b8a-467d-8152-fac7bd1ab48f/dhj0o6n-1446f093-6103-43df-b5ab-7d7e97808818.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi83MjA3MjJhNy05YjhhLTQ2N2QtODE1Mi1mYWM3YmQxYWI0OGYvZGhqMG82bi0xNDQ2ZjA5My02MTAzLTQzZGYtYjVhYi03ZDdlOTc4MDg4MTgucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.uPSrxXaf3mqj8Fumncr-Fe8gZ0Ojl1b36R2fXdy-xLw" alt="flag">
+        <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/720722a7-9b8a-467d-8152-fac7bd1ab48f/dhj0o0y-69aedce9-c38f-441f-8d61-7e3ca6e784cc.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi83MjA3MjJhNy05YjhhLTQ2N2QtODE1Mi1mYWM3YmQxYWI0OGYvZGhqMG8weS02OWFlZGNlOS1jMzhmLTQ0MWYtOGQ2MS03ZTNjYTZlNzg0Y2MucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.Abae8lmtuRuiOXGas3bsu9UYX7JFa4PJ2dltfmhYZvo" alt="flag">
+        <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/720722a7-9b8a-467d-8152-fac7bd1ab48f/dhj0nqe-4168f7bb-7abd-415c-8720-c86f330bdd55.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi83MjA3MjJhNy05YjhhLTQ2N2QtODE1Mi1mYWM3YmQxYWI0OGYvZGhqMG5xZS00MTY4ZjdiYi03YWJkLTQxNWMtODcyMC1jODZmMzMwYmRkNTUucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.Y6rOZPhGAAzuN-xc9H3gz-wipWFPxA7VwCKDrYEv3nk" alt="flag">
       </div>
     </div>
 
-  </div><!-- end .af-columns -->
+  </div>
 
   <div class="af-hud-line"></div>
 
-</div><!-- end .af-profile -->
+</div>
 
 <!-- ============================================================
      END OF ARTFIGHT PASTE
      ============================================================ -->
 
 <div class="copy-note">
-  <strong>HOW TO USE:</strong><br><br>
-  1. Open your ArtFight profile → Edit → find the big HTML text box<br>
-  2. Select all text in that box and delete it<br>
-  3. Copy everything between the two <code>COPY EVERYTHING</code> comment lines above<br>
-  4. Paste it into the ArtFight box and save<br><br>
-  <strong>TO CUSTOMIZE:</strong><br>
-  • Replace the bio paragraph text with your own words<br>
-  • Replace each <code>REPLACE_ME</code> image URL with a real hosted image URL (Imgur works great)<br>
-  • Colors are defined in the <code>&lt;style&gt;</code> block — look for hex codes like <code>#48cae4</code> to tweak
+  <strong>HOW TO USE:</strong><br>
+  1. Go to your ArtFight profile → Edit → find the big HTML text box<br>
+  2. Delete everything in that box<br>
+  3. Copy everything between the two <code>COPY EVERYTHING</code> / <code>END OF ARTFIGHT PASTE</code> comment lines above<br>
+  4. Paste into ArtFight and save<br><br>
+  <strong>TO UPDATE YOUR BIO:</strong> Find the <code>&lt;p&gt;</code> tag inside <code>&lt;div class="af-bio"&gt;</code> and replace the text<br>
+  <strong>NOTE:</strong> The Wixmp flag URLs may expire over time — if flags stop showing, re-upload them to Imgur and update the src="" values
 </div>
 
 </body>
